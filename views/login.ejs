@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="icon" type="image/png" href="/img/cryteksoft-logo.png">
+    <title>LOGIN | CRYTEKSOFT | GAME API | REPORT</title>
+    <style> body { display: flex; align-items: center; justify-content: center; height: 100vh; background: linear-gradient(to right, rgb(226 225 227), rgb(23 30 43)); } .login-card { width: 100%; max-width: 450px; border-radius: 1rem; border: none; } </style>
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+</head>
+<body>
+    <main>
+        <div class="card login-card shadow-lg">
+            <div class="card-body p-4 p-md-5">
+                <div class="text-center mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="72" height="72" fill="currentColor" class="bi bi-shield-lock-fill text-primary" viewBox="0 0 16 16"><path style="color: rgb(54 56 59) !important;" fill-rule="evenodd" d="M8 0c-.69 0-1.843.265-2.928.56-1.11.3-2.229.655-2.887.87a1.54 1.54 0 0 0-1.044 1.262c-.596 4.477.787 7.795 2.465 9.99a11.8 11.8 0 0 0 2.517 2.453c.386.273.744.482 1.048.625.28.132.581.19.829.19s.548-.058.829-.19c.304-.143.662-.352 1.048-.625a11.8 11.8 0 0 0 2.517-2.453c1.678-2.195 3.061-5.513 2.465-9.99a1.54 1.54 0 0 0-1.044-1.262c-.658-.215-1.777-.57-2.887-.87C9.843.265 8.69 0 8 0m0 5a1.5 1.5 0 0 1 .5 2.915l.385 1.99a.5.5 0 0 1-.491.595h-.788a.5.5 0 0 1-.49-.595l.384-1.99A1.5 1.5 0 0 1 8 5"/></svg>
+                    <h4 class="h6 mt-3 mb-3 fw-bold">CRYTEKSOFT | GAME API | REPORT</h4>
+                    <h2 class="h4 mt-3 mb-3 fw-bold">ยินดีต้อนรับสู่ Back Office</h2>
+                </div>
+                
+                <form id="loginForm" action="/auth/login" method="POST">
+                    <div class="mb-3">
+                        <label for="username" class="form-label">ชื่อผู้ใช้</label>
+                        <div class="input-group"><span class="input-group-text"><i class="bi bi-person-fill"></i></span><input style="background-color: #bbc3c5;" type="text" class="form-control form-control-lg" public id="username" name="username" required></div>
+                    </div>
+                    <div class="mb-4">
+                        <label for="password" class="form-label">รหัสผ่าน</label>
+                        <div class="input-group"><span class="input-group-text"><i class="bi bi-key-fill"></i></span><input style="background-color: #bbc3c5;" type="password" class="form-control form-control-lg" id="password" name="password" required></div>
+                    </div>               
+                    <div class="mb-4">
+                        <div class="cf-turnstile" data-sitekey="<%= turnstile_sitekey %>" data-theme="light"></div>
+                    </div>
+                    <div class="d-grid">
+                        <button style="background-color: #282828;" type="submit" class="btn btn-primary btn-lg fw-bold">เข้าสู่ระบบ</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <div class="modal fade" id="2faModal" tabindex="-1" aria-labelledby="2faModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="2faModalLabel">ยืนยันตัวตนสองขั้นตอน</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>กรอกรหัส 6 หลักจากแอป Authenticator ของคุณ</p>
+                    <form id="2faForm" action="/2fa/verify-login" method="POST">
+                        <div class="mb-3">
+                            <input type="text" class="form-control form-control-lg text-center" id="2fa-token" name="token" required maxlength="6" placeholder="______">
+                        </div>
+                        <div id="2fa-error" class="text-danger mb-3" style="display: none;"></div>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-success">ยืนยันรหัส</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <script>
+    $(document).ready(function() {
+        const twoFaModal = new bootstrap.Modal(document.getElementById('2faModal'));
+
+        // จัดการฟอร์ม Login หลัก
+        $('#loginForm').on('submit', function(e) {
+            e.preventDefault();
+            const form = $(this);
+            const formData = form.serializeArray(); // ใช้แค่นี้พอ ข้อมูล Turnstile รวมอยู่ในนี้แล้ว
+
+            $.ajax({
+                type: 'POST',
+                url: form.attr('action'),
+                data: $.param(formData), // ใช้ $.param เพื่อแปลง Array เป็น String สำหรับส่งข้อมูล
+                dataType: 'json',
+                success: function(response) {
+                    if (response.two_factor_required) {
+                        twoFaModal.show();
+                    } else {
+                        window.location.href = response.redirectUrl;
+                    }
+                },
+                error: function(xhr) {
+                    const error = xhr.responseJSON;
+                    // รีเซ็ต Turnstile widget หลังจากเกิดข้อผิดพลาด เพื่อให้ผู้ใช้ลองใหม่ได้
+                    if (typeof turnstile !== 'undefined') {
+                        turnstile.reset();
+                    }
+                    Swal.fire('Login ไม่สำเร็จ', error.message || 'เกิดข้อผิดพลาด', 'error');
+                }
+            });
+        });
+
+        // จัดการฟอร์ม 2FA ใน Modal
+        $('#2faForm').on('submit', function(e) {
+            e.preventDefault();
+            const form = $(this);
+            $.ajax({
+                type: 'POST',
+                url: form.attr('action'),
+                data: form.serialize(),
+                dataType: 'json',
+                success: function(response) {
+                    // ถ้ายืนยัน 2FA สำเร็จ -> ไปหน้า Dashboard
+                    window.location.href = response.redirectUrl;
+                },
+                error: function(xhr) {
+                    // ถ้ายืนยัน 2FA ไม่สำเร็จ -> แสดง error ใน Modal
+                    const error = xhr.responseJSON;
+                    $('#2fa-error').text(error.message || 'เกิดข้อผิดพลาด').show();
+                }
+            });
+        });
+
+        // เมื่อ Modal กำลังจะเปิด, ให้ล้างค่าเก่าทิ้ง
+        $('#2faModal').on('show.bs.modal', function () {
+            $('#2fa-token').val('');
+            $('#2fa-error').hide();
+        });
+    });
+    </script>
+    </body>
+</html>

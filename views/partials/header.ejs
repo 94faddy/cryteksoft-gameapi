@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/png" href="/img/cryteksoft-logo.png">
+    <title>CRYTEKSOFT | GAME API | REPORT</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
+    <link href="https://unpkg.com/gijgo@1.9.14/css/gijgo.min.css" rel="stylesheet" type="text/css" />
+    <link href="https://cdn.datatables.net/1.12.1/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+
+    <style>
+        :root {
+            --sidebar-width: 200px;
+            --top-navbar-height: 58px;
+        }
+
+        /* 1. Flexbox for Sticky Footer */
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh; /* Body takes full screen height */
+            background-color: #151414;
+            color: #f8f9fa;
+        }
+
+        .wrapper {
+            display: flex;
+            width: 100%;
+            align-items: stretch;
+            flex: 1; /* Wrapper grows to fill space, pushing footer down */
+        }
+
+        /* 2. Sidebar Styles */
+        #sidebar {
+            min-width: var(--sidebar-width);
+            max-width: var(--sidebar-width);
+            background: #212529;
+            color: #fff;
+            transition: margin-left 0.3s ease-in-out;
+        }
+
+        /* Sidebar state for DESKTOP: collapsed */
+        #sidebar.collapsed {
+            margin-left: calc(-1 * var(--sidebar-width));
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            background: rgba(255,255,255,0.05);
+            text-align: center;
+        }
+
+        #sidebar .nav-link {
+            padding: 0.8rem 1rem;
+            color: rgba(255, 255, 255, 0.7);
+        }
+        #sidebar .nav-link:hover, #sidebar .nav-link.active {
+            color: #fff;
+            background: #343a40;
+        }
+        #sidebar .nav-link .fa-fw {
+            width: 2em;
+        }
+
+        /* Main Content Area */
+        #content {
+            width: 100%;
+            min-height: 100vh;
+        }
+
+        .navbar-top {
+            padding: 0.5rem 1rem;
+        }
+        
+        main {
+            padding: 20px;
+        }
+
+        /* 3. Mobile Specific Styles */
+        @media (max-width: 991.98px) {
+            #sidebar {
+                position: fixed;
+                top: 0;
+                left: 0;
+                height: 100vh;
+                z-index: 1045;
+                margin-left: calc(-1 * var(--sidebar-width)); /* Hidden by default on mobile */
+            }
+            /* Sidebar state for MOBILE: active (visible) */
+            #sidebar.active {
+                margin-left: 0;
+            }
+            .sidebar-overlay {
+                display: none;
+                position: fixed;
+                top: 0; left: 0; width: 100%; height: 100%;
+                background: rgba(0, 0, 0, 0.5);
+                z-index: 1044;
+            }
+            .sidebar-overlay.active {
+                display: block;
+            }
+        }
+
+        /* 4. Gijgo Date Picker Dark Theme - NEWLY ADDED */
+        .gj-picker-bootstrap {
+            background-color: #2c3034;
+            border: 1px solid #495057;
+            color: #f8f9fa;
+        }
+        .gj-picker-bootstrap thead tr th {
+            background-color: #343a40;
+            color: #f8f9fa;
+            border-bottom: 1px solid #495057;
+        }
+        .gj-picker-bootstrap .gj-header {
+            background-color: #343a40;
+            color: #f8f9fa;
+        }
+        .gj-picker-bootstrap .gj-header .btn-outline-secondary {
+            color: #f8f9fa;
+            border-color: #6c757d;
+        }
+        .gj-picker-bootstrap .gj-header .btn-outline-secondary:hover {
+            background-color: #6c757d;
+        }
+        .gj-picker-bootstrap tbody tr td {
+            color: #f8f9fa;
+            border: 1px solid transparent;
+        }
+        .gj-picker-bootstrap tbody tr td.disabled {
+            color: #6c757d;
+        }
+        .gj-picker-bootstrap tbody tr td.today {
+            border: 1px solid #0d6efd;
+        }
+        .gj-picker-bootstrap tbody tr td:hover {
+            background-color: #495057;
+        }
+        .gj-picker-bootstrap tbody tr td.active {
+            background-color: #0d6efd;
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+
+<div class="wrapper">
+    <nav id="sidebar">
+        <div class="sidebar-header">
+            <h5>CRYTEKSOFT</h5>
+            <h8>GAME API</h8>
+        </div>
+        <ul class="nav nav-pills flex-column p-2">
+            <li class="nav-item">
+                <a href="/dashboard" class="nav-link text-white">
+                    <i class="fa-solid fa-border-all fa-fw"></i> DASHBOARD
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/report" class="nav-link text-white">
+                    <i class="fa-solid fa-chart-line fa-fw"></i> รายงาน REPORT
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/api-keys" class="nav-link text-white">
+                    <i class="fa-solid fa-key fa-fw"></i> จัดการ API
+                </a>
+            </li>
+            <li>
+                <a href="/game-settings" class="nav-link text-white">
+                    <i class="fa-solid fa-gamepad fa-fw"></i> SETTING เกม
+                </a>
+            </li>
+            <li>
+                <a href="/documents" class="nav-link text-white">
+                    <i class="fa-solid fa-file-lines fa-fw"></i> เอกสาร API
+                </a>
+            </li>
+        </ul>
+    </nav>
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+    <div id="content">
+        <nav class="navbar navbar-expand-lg navbar-dark bg-dark navbar-top">
+            <div class="container-fluid">
+                <button type="button" id="sidebar-toggle" class="btn btn-dark">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <ul class="navbar-nav ms-auto">
+                    <% if (user) { %>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fa-solid fa-user-circle"></i> ยินดีต้อนรับ, <%= user.name %>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdownMenuLink">
+                                <li><a class="dropdown-item" href="/manage-2fa">จัดการ 2FA</a></li>
+                                <li><a class="dropdown-item" href="/change-password">เปลี่ยนรหัสผ่าน</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="/auth/logout">ออกจากระบบ</a></li>
+                            </ul>
+                        </li>
+                    <% } %>
+                </ul>
+            </div>
+        </nav>
+        <main>

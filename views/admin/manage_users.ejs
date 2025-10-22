@@ -1,0 +1,396 @@
+<%- include('partials/header') %>
+<style>
+    /* เพิ่ม CSS เล็กน้อยสำหรับปุ่ม Preset */
+    .preset-btn-group .btn {
+        margin: 0 5px;
+        font-size: 0.9rem;
+    }
+</style>
+
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">จัดการผู้ใช้งาน API</h1>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-header">
+        <i class="bi bi-search"></i> ค้นหาผู้ใช้งาน
+    </div>
+    <div class="card-body">
+        <input type="text" id="userSearchInput" class="form-control" placeholder="พิมพ์ชื่อ, Username, หรือ API Key เพื่อค้นหา...">
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table" id="usersTable">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Username</th>
+                        <th>API Key</th>
+                        <th>Secret</th>
+                        <th>Callback URL</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="usersTableBody">
+                <% users.forEach(user => { %>
+                    <tr>
+                        <td><%= user.name %></td>
+                        <td><%= user.username %></td>
+                        <td><code><%= user.apikey %></code></td>
+                        <td><code><%= user.secret %></code></td>
+                        <td><%= user.callback %></td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary edit-btn" data-bs-toggle="modal" data-bs-target="#editUserModal" data-user-id="<%= user._id %>" data-user-name="<%= user.name %>" data-user-username="<%= user.username %>" data-user-ip="<%= user.ip %>" data-user-callback="<%= user.callback %>" data-user-secret="<%= user.secret %>">
+                                <i class="bi bi-pencil-square"></i> แก้ไข
+                            </button>
+                            <button class="btn btn-sm btn-outline-info settings-btn" data-user-id="<%= user._id %>">
+                                <i class="bi bi-gear-fill"></i> ตั้งค่าเกม
+                            </button>                            
+                            <button class="btn btn-sm btn-outline-danger delete-btn" data-user-id="<%= user._id %>" data-user-name="<%= user.name %>">
+                                <i class="bi bi-trash-fill"></i> ลบ
+                            </button>
+                        </td>
+                    </tr>
+                <% }) %>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="editUserModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="editUserForm" action="/admin/api/update-user" method="POST">
+                <div class="modal-header"><h5 class="modal-title">แก้ไขข้อมูล User</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body">
+                    <input type="hidden" id="edit-userId" name="userId">
+                    <div class="mb-3"><label for="edit-name" class="form-label">Name</label><input type="text" class="form-control" id="edit-name" name="name"></div>
+                    <div class="mb-3"><label for="edit-username" class="form-label">Username</label><input type="text" class="form-control" id="edit-username" name="username"></div>
+                    <div class="mb-3"><label for="edit-ip" class="form-label">IP Address</label><input type="text" class="form-control" id="edit-ip" name="ip"></div>
+                    <div class="mb-3"><label for="edit-callback" class="form-label">Callback URL</label><input type="text" class="form-control" id="edit-callback" name="callback"></div>
+                    <hr>
+                    <div class="mb-3"><label for="edit-new_password" class="form-label">รหัสผ่านใหม่ (กรอกหากต้องการเปลี่ยน)</label><input type="password" class="form-control" id="edit-new_password" name="new_password"></div>
+                    <hr>
+                    <div class="mb-3"><label for="edit-admin_password" class="form-label fw-bold text-danger">ยืนยันรหัสผ่าน Admin ของคุณ</label><input type="password" class="form-control" id="edit-admin_password" name="admin_password" required></div>
+                </div>
+                <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button><button type="submit" class="btn btn-primary">บันทึกการเปลี่ยนแปลง</button></div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="gameSettingsModal" tabindex="-1" aria-labelledby="gameSettingsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form id="gameSettingsForm">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="gameSettingsModalLabel">ตั้งค่าเกมสำหรับ: <span id="settings-modal-username" class="fw-bold"></span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="text-center mb-4 p-3 bg-light rounded">
+                        <h6 class="mb-2">เลือกการตั้งค่าเริ่มต้น (Presets)</h6>
+                        <div class="preset-btn-group">
+                            <button type="button" class="btn btn-sm btn-outline-primary" id="admin-preset-balanced">สมดุล (แนะนำ)</button>
+                            <!--<button type="button" class="btn btn-sm btn-outline-success" id="admin-preset-low-rtp">แตกบ่อย</button>
+                            <button type="button" class="btn btn-sm btn-outline-danger" id="admin-preset-high-rtp">เสี่ยงสูง</button>-->
+                        </div>
+                    </div>
+                    <div id="settings-form-content">
+                        </div>
+                    <div id="settings-form-loader" class="text-center d-none">
+                        <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div>
+                        <p class="mt-2">กำลังโหลดข้อมูล...</p>
+                    </div>
+                    <hr>
+                    <div class="mb-3">
+                        <label for="settings-admin_password" class="form-label fw-bold text-danger">ยืนยันรหัสผ่าน Admin ของคุณ</label>
+                        <input type="password" class="form-control" id="settings-admin_password" name="admin_password" required autocomplete="current-password">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+                    <button type="submit" class="btn btn-primary">บันทึกการตั้งค่า</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // =================================================================
+    // START: ส่วนจัดการ Modal แก้ไข และ ปุ่มลบ
+    // =================================================================
+    const editUserModalEl = document.getElementById('editUserModal');
+    if (editUserModalEl) {
+        const editUserModal = new bootstrap.Modal(editUserModalEl);
+        const editUserForm = document.getElementById('editUserForm');
+        const editUserIdInput = document.getElementById('edit-userId');
+        const editNameInput = document.getElementById('edit-name');
+        const editUsernameInput = document.getElementById('edit-username');
+        const editIpInput = document.getElementById('edit-ip');
+        const editCallbackInput = document.getElementById('edit-callback');
+
+        document.querySelectorAll('.edit-btn').forEach(button => {
+            button.addEventListener('click', function () {
+                const userData = this.dataset;
+                editUserIdInput.value = userData.userId;
+                editNameInput.value = userData.userName;
+                editUsernameInput.value = userData.userUsername;
+                editIpInput.value = userData.userIp;
+                editCallbackInput.value = userData.userCallback;
+            });
+        });
+
+        editUserForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const formData = new FormData(editUserForm);
+            const data = Object.fromEntries(formData.entries());
+            try {
+                const response = await fetch('/admin/api/update-user', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
+                if (result.success) {
+                    Swal.fire({ icon: 'success', title: 'สำเร็จ!', text: result.message }).then(() => window.location.reload());
+                } else {
+                    throw new Error(result.message);
+                }
+            } catch (error) {
+                Swal.fire({ icon: 'error', title: 'ผิดพลาด!', text: error.message });
+            }
+        });
+    }
+
+    document.querySelectorAll('.delete-btn').forEach(button => {
+        button.addEventListener('click', function () {
+            const userId = this.dataset.userId;
+            const userName = this.dataset.userName;
+            Swal.fire({
+                title: `คุณแน่ใจหรือไม่?`,
+                text: `คุณต้องการลบผู้ใช้งาน "${userName}" ใช่หรือไม่? การกระทำนี้ไม่สามารถย้อนกลับได้!`,
+                icon: 'warning', showCancelButton: true,
+                confirmButtonColor: '#d33', cancelButtonColor: '#3085d6',
+                confirmButtonText: 'ใช่, ลบเลย!', cancelButtonText: 'ยกเลิก'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    Swal.fire({
+                        title: 'ยืนยันการลบ',
+                        text: 'กรุณากรอกรหัสผ่าน Admin ของคุณเพื่อยืนยันการลบ',
+                        input: 'password', inputAttributes: { autocapitalize: 'off' },
+                        showCancelButton: true, confirmButtonText: 'ยืนยัน',
+                        showLoaderOnConfirm: true,
+                        preConfirm: (admin_password) => {
+                            return fetch('/admin/api/delete-user', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ userId, admin_password })
+                            })
+                            .then(response => {
+                                if (!response.ok) { return response.json().then(err => { throw new Error(err.message) }); }
+                                return response.json();
+                            })
+                            .catch(error => { Swal.showValidationMessage(`การร้องขอล้มเหลว: ${error}`) });
+                        },
+                        allowOutsideClick: () => !Swal.isLoading()
+                    }).then((result) => {
+                        if (result.isConfirmed && result.value.success) {
+                            Swal.fire({ icon: 'success', title: 'ลบสำเร็จ!', text: 'ผู้ใช้งานถูกลบออกจากระบบแล้ว' }).then(() => window.location.reload());
+                        }
+                    });
+                }
+            });
+        });
+    });
+
+    // ===============================================================
+    // START: ส่วนจัดการ "ค้นหา" และ "ตั้งค่าเกม"
+    // ===============================================================
+    const searchInput = document.getElementById('userSearchInput');
+    const tableBody = document.getElementById('usersTableBody');
+    if (!tableBody) { return; }
+    const rows = tableBody.getElementsByTagName('tr');
+
+    searchInput.addEventListener('keyup', function() {
+        const filter = searchInput.value.toLowerCase();
+        for (let i = 0; i < rows.length; i++) {
+            let row = rows[i];
+            let textContent = row.textContent || row.innerText;
+            if (textContent.toLowerCase().indexOf(filter) > -1) {
+                row.style.display = "";
+            } else {
+                row.style.display = "none";
+            }
+        }
+    });
+
+    const gameSettingsModalEl = document.getElementById('gameSettingsModal');
+    if(gameSettingsModalEl) {
+        const gameSettingsModal = new bootstrap.Modal(gameSettingsModalEl);
+        const gameSettingsForm = document.getElementById('gameSettingsForm');
+        const settingsFormContent = document.getElementById('settings-form-content');
+        const settingsFormLoader = document.getElementById('settings-form-loader');
+        const settingsModalUsername = document.getElementById('settings-modal-username');
+        let currentUserId = null;
+
+        const defaultSettings = {
+            'normal-spin': 85, 'less-bet': 35, 'less-bet-from': 0, 'less-bet-to': 1,
+            'more-bet': 8, 'more-bet-from': 2, 'more-bet-to': 4,
+            'freespin-less-bet': 1, 'freespin-less-bet-from': 0, 'freespin-less-bet-to': 4,
+            'freespin-more-bet': 0, 'freespin-more-bet-from': 50, 'freespin-more-bet-to': 60,
+            'buy-feature-less-bet': 90, 'buy-feature-less-bet-from': 0, 'buy-feature-less-bet-to': 50,
+            'buy-feature-more-bet': 4, 'buy-feature-more-bet-from': 50, 'buy-feature-more-bet-to': 60
+        };
+
+        const presets = {
+            balanced: {
+                'normal-spin': 85, 'less-bet': 35, 'less-bet-from': 0, 'less-bet-to': 1,
+                'more-bet': 8, 'more-bet-from': 2, 'more-bet-to': 4,
+                'freespin-less-bet': 1, 'freespin-less-bet-from': 0, 'freespin-less-bet-to': 4,
+                'freespin-more-bet': 0, 'freespin-more-bet-from': 50, 'freespin-more-bet-to': 60,
+                'buy-feature-less-bet': 90, 'buy-feature-less-bet-from': 0, 'buy-feature-less-bet-to': 50,
+                'buy-feature-more-bet': 4, 'buy-feature-more-bet-from': 50, 'buy-feature-more-bet-to': 60
+            }
+            /*low_rtp: {
+                'normal-spin': 85, 'less-bet': 12, 'less-bet-from': 0, 'less-bet-to': 1, 'more-bet': 3,
+                'more-bet-from': 2, 'more-bet-to': 7, 'freespin-less-bet': 80, 'freespin-less-bet-from': 0,
+                'freespin-less-bet-to': 12, 'freespin-more-bet': 20, 'freespin-more-bet-from': 15,
+                'freespin-more-bet-to': 45, 'buy-feature-less-bet': 90, 'buy-feature-less-bet-from': 2,
+                'buy-feature-less-bet-to': 40, 'buy-feature-more-bet': 10, 'buy-feature-more-bet-from': 100,
+                'buy-feature-more-bet-to': 250
+            },
+            high_rtp: {
+                'normal-spin': 60, 'less-bet': 30, 'less-bet-from': 0, 'less-bet-to': 1, 'more-bet': 10,
+                'more-bet-from': 5, 'more-bet-to': 20, 'freespin-less-bet': 50, 'freespin-less-bet-from': 10,
+                'freespin-less-bet-to': 30, 'freespin-more-bet': 50, 'freespin-more-bet-from': 40,
+                'freespin-more-bet-to': 100, 'buy-feature-less-bet': 70, 'buy-feature-less-bet-from': 20,
+                'buy-feature-less-bet-to': 60, 'buy-feature-more-bet': 30, 'buy-feature-more-bet-from': 100,
+                'buy-feature-more-bet-to': 300
+            }*/
+        };
+
+        function applyPreset(presetName) {
+            const selectedPreset = presets[presetName];
+            for (const key in selectedPreset) {
+                const input = gameSettingsForm.elements[key];
+                if (input) {
+                    input.value = selectedPreset[key];
+                    if (input.type === 'range') {
+                        input.dispatchEvent(new Event('input', { bubbles: true }));
+                    }
+                }
+            }
+        }
+        
+        document.getElementById('admin-preset-balanced').addEventListener('click', () => applyPreset('balanced'));
+        /*document.getElementById('admin-preset-low-rtp').addEventListener('click', () => applyPreset('low_rtp'));
+        document.getElementById('admin-preset-high-rtp').addEventListener('click', () => applyPreset('high_rtp'));*/
+
+        function setupRangeSlider(container) {
+            container.querySelectorAll('input[type="range"]').forEach(range => {
+                const valueSpan = document.getElementById(range.id + '-value'); 
+                const updateSpan = () => {
+                    if (valueSpan) {
+                        valueSpan.textContent = `(${parseFloat(range.value).toFixed(1)}%)`;
+                    }
+                };
+                range.addEventListener('input', updateSpan);
+                updateSpan();
+            });
+        }
+
+        function buildSettingsForm(settings) {
+            const formHtml = `
+                <input type="hidden" name="userId" value="${currentUserId}">
+                <div class="row">
+                    ${Object.keys(defaultSettings).map(key => {
+                        const value = settings[key] !== undefined ? settings[key] : defaultSettings[key];
+                        const label = key.replace(/-/g, ' ');
+                        
+                        // ส่วนของ Slider (step="0.1" เหมือนเดิม)
+                        if (key.includes('-bet') && !key.includes('-from') && !key.includes('-to') || key.includes('normal-spin')) {
+                            return `
+                            <div class="col-md-6 mb-3">
+                                <label for="setting-${key}" class="form-label">${label} 
+                                    <span id="setting-${key}-value" class="text-primary fw-bold"></span>
+                                </label>
+                                <input type="range" class="form-range" id="setting-${key}" name="${key}" min="0.1" max="100" step="0.1" value="${value}">
+                            </div>`;
+                        } else { 
+                            // ส่วนของตัวคูณ (แก้ไข step="1" ที่นี่)
+                            return `
+                            <div class="col-md-6 mb-3">
+                                <label for="setting-${key}" class="form-label">${label}</label>
+                                <input type="number" min="0" step="1" class="form-control" id="setting-${key}" name="${key}" value="${value}">
+                            </div>`;
+                        }
+                    }).join('')}
+                </div>
+            `;
+            settingsFormContent.innerHTML = formHtml;
+            setupRangeSlider(settingsFormContent);
+        }
+
+        document.querySelectorAll('.settings-btn').forEach(button => {
+            button.addEventListener('click', async function() {
+                currentUserId = this.getAttribute('data-user-id');
+                const userName = this.closest('tr').cells[0].textContent;
+                
+                settingsModalUsername.textContent = userName;
+                settingsFormContent.innerHTML = '';
+                settingsFormLoader.classList.remove('d-none');
+                gameSettingsModal.show();
+                try {
+                    const response = await fetch(`/admin/api/get-user-settings/${currentUserId}`);
+                    const data = await response.json();
+                    if (!data.success) throw new Error(data.message);
+                    const settings = { ...defaultSettings, ...data.settings };
+                    buildSettingsForm(settings);
+                } catch (error) {
+                    Swal.fire({ icon: 'error', title: 'ผิดพลาด!', text: 'ไม่สามารถโหลดข้อมูลการตั้งค่าได้: ' + error.message });
+                    gameSettingsModal.hide();
+                } finally {
+                    settingsFormLoader.classList.add('d-none');
+                }
+            });
+        });
+
+        gameSettingsForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const formData = new FormData(gameSettingsForm);
+            const data = Object.fromEntries(formData.entries());
+
+            if (!data.admin_password) {
+                Swal.fire({ icon: 'warning', title: 'ข้อมูลไม่ครบถ้วน', text: 'กรุณากรอกรหัสผ่าน Admin เพื่อยืนยัน' });
+                return;
+            }
+            try {
+                const response = await fetch('/admin/api/update-user-settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
+                if (result.success) {
+                    Swal.fire({ icon: 'success', title: 'สำเร็จ!', text: result.message, timer: 2000, showConfirmButton: false });
+                    gameSettingsModal.hide();
+                    gameSettingsForm.reset();
+                } else {
+                    throw new Error(result.message);
+                }
+            } catch (error) {
+                Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด!', text: error.message });
+            }
+        });
+    }
+});
+</script>
+
+<%- include('partials/footer') %>

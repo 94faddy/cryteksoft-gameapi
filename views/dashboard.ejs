@@ -1,0 +1,45 @@
+<%- include('partials/header') %>
+
+<h2 class="text-center text-white mt-3 mb-4">
+    ภาพรวมของ Agent <span class="text-danger"><%= user.name %></span> (เดือนปัจจุบัน)
+</h2>
+<hr class="border-secondary">
+
+<div class="row text-center">
+    <div class="col-md-4">
+        <div class="card text-white bg-primary shadow-sm mb-3">
+            <div class="card-header"><h4>ยอดเดิมพันทั้งหมด</h4></div>
+            <div class="card-body">
+                <h3 class="card-title" id="total_bet_all">0.00</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-white bg-danger shadow-sm mb-3">
+            <div class="card-header"><h4>ยอดเสียทั้งหมด (Agent เสีย)</h4></div>
+            <div class="card-body">
+                <h3 class="card-title" id="total_agent_loss">0.00</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-white bg-dark shadow-sm mb-3"  style="background-color: rgb(63 146 147) !important;">
+            <div class="card-header"><h4>ยอดได้ทั้งหมด (Agent ได้)</h4></div>
+            <div class="card-body">
+                 <h3 class="card-title" id="agent_net_profit">0.00</h3>
+            </div>
+        </div>
+    </div>
+</div>
+<hr class="border-secondary">
+
+<div class="card bg-dark text-light">
+    <div class="card-header bg-secondary bg-opacity-25 border-secondary">
+        สรุปผลประกอบการรายเดือน (ย้อนหลัง 3 เดือนและเดือนปัจจุบัน)
+    </div>
+    <div class="card-body">
+        <canvas id="monthlyChart"></canvas>
+    </div>
+</div>
+
+<%- include('partials/footer') %>

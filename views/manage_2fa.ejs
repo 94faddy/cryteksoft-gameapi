@@ -1,0 +1,32 @@
+<%- include('partials/header') %>
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow-sm bg-dark text-light">
+            <div class="card-header bg-secondary bg-opacity-25 border-secondary"><h3><i class="bi bi-shield-check"></i> จัดการ Two-Factor Authentication (2FA)</h3></div>
+            <div class="card-body">
+                <% if (user.two_factor_enabled) { %>
+                    <div class="alert alert-success">สถานะ: <strong>เปิดใช้งาน</strong></div>
+                    <p>การยืนยันตัวตนสองขั้นตอนกำลังปกป้องบัญชีของคุณ</p>
+                    <hr class="border-secondary">
+                    <h4>ปิดใช้งาน 2FA</h4>
+                    <form id="disable2faForm" action="/2fa/disable" method="POST">
+                        <div class="mb-3">
+                            <label for="password" class="form-label">รหัสผ่านปัจจุบัน</label>
+                            <input type="password" name="password" class="form-control bg-dark text-light" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="token" class="form-label">รหัส 2FA จากแอปพลิเคชัน</label>
+                            <input type="text" name="token" class="form-control bg-dark text-light" required maxlength="6">
+                        </div>
+                        <button type="submit" class="btn btn-danger">ยืนยันการปิดใช้งาน</button>
+                    </form>
+                <% } else { %>
+                    <div class="alert alert-warning text-dark">สถานะ: <strong>ปิดใช้งาน</strong></div>
+                    <p>เพิ่มความปลอดภัยให้บัญชีของคุณโดยการเปิดใช้งานการยืนยันตัวตนสองขั้นตอน</p>
+                    <a href="/2fa/setup" class="btn btn-primary">เปิดใช้งาน 2FA</a>
+                <% } %>
+            </div>
+        </div>
+    </div>
+</div>
+<%- include('partials/footer') %>

@@ -1,0 +1,77 @@
+<%- include('partials/header') %>
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">Dashboard</h1>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <div class="row g-3 align-items-center">
+            <div class="col-md-5">
+                <input placeholder="จากวันที่" id="startDate" class="form-control" />
+            </div>
+            <div class="col-md-5">
+                <input placeholder="ถึงวันที่" id="endDate" class="form-control" />
+            </div>
+            <div class="col-md-2 d-grid">
+                <button class="btn btn-primary" id="search-button" type="button">ค้นหา</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <h5 class="card-title">สรุปข้อมูลการเดิมพันทั้งหมด (<span id="date-display-title">ล่าสุด</span>)</h5>
+        <div class="row text-center">
+            <div class="col-md-4"><div class="card bg-primary text-white p-3"><h6 class="mb-0">Total Bet</h6><h4 id="overall-bet">0.00</h4></div></div>
+            <div class="col-md-4"><div class="card bg-success text-white p-3"><h6 class="mb-0">User Win</h6><h4 id="overall-win">0.00</h4></div></div>
+            <div class="col-md-4"><div class="card bg-danger text-white p-3"><h6 class="mb-0">User Loss</h6><h4 id="overall-profit">0.00</h4></div></div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-header">ค้นหาผู้ใช้งาน</div>
+    <div class="card-body">
+        <input type="text" id="userSearchInput" class="form-control" placeholder="พิมพ์เพื่อกรองข้อมูล...">
+    </div>
+</div>
+<div class="card shadow-sm">
+    <div class="card-header">รายละเอียด Win/Loss แยกตามผู้ใช้งาน</div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead><tr><th>Agent</th><th>Total Bet</th><th>User Win</th><th>User Loss</th></tr></thead>
+                <tbody id="users-summary-table"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('userSearchInput');
+    const tableBody = document.getElementById('users-summary-table');
+
+    if (searchInput && tableBody) {
+        searchInput.addEventListener('keyup', function() {
+            const filter = searchInput.value.toLowerCase();
+            const rows = tableBody.getElementsByTagName('tr');
+
+            for (let i = 0; i < rows.length; i++) {
+                let row = rows[i];
+                let usernameCell = row.getElementsByTagName('td')[0]; // ค้นหาจากคอลัมน์แรก (ชื่อผู้ใช้งาน)
+                if (usernameCell) {
+                    let textContent = usernameCell.textContent || usernameCell.innerText;
+                    if (textContent.toLowerCase().indexOf(filter) > -1) {
+                        row.style.display = ""; // แสดงแถวที่ตรงกัน
+                    } else {
+                        row.style.display = "none"; // ซ่อนแถวที่ไม่ตรงกัน
+                    }
+                }
+            }
+        });
+    }
+});
+</script>
+<%- include('partials/footer') %>

@@ -1,0 +1,139 @@
+<%- include('partials/header'); %>
+
+<style>
+    /* สไตล์ชีทส่วนนี้ไม่มีการเปลี่ยนแปลง */
+    .card-report { background-color: #212529; border: 1px solid #3e444a; color: white; }
+    .card-report .card-body { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .card-report .card-title { font-size: 1rem; color: #adb5bd; }
+    .card-report .card-text { font-size: 1.75rem; font-weight: bold; }
+    .text-success { color: #28a745 !important; }
+    .text-danger { color: #dc3545 !important; }
+    #reportTable img.game-icon { width: 32px; height: 32px; border-radius: 5px; margin-right: 8px; vertical-align: middle; }
+    .table-dark { --bs-table-bg: #212529; --bs-table-striped-bg: #2c3034; --bs-table-striped-color: #fff; --bs-table-active-bg: #373b3e; --bs-table-active-color: #fff; --bs-table-hover-bg: #323539; --bs-table-hover-color: #fff; color: #fff; border-color: #373b3e; }
+</style>
+
+<style>
+    #reportTable th, #reportTable td {
+        white-space: nowrap; /* ป้องกันการตัดข้อความขึ้นบรรทัดใหม่ */
+        vertical-align: middle; /* จัดให้รูปภาพและข้อความอยู่กึ่งกลางแนวตั้ง */
+    }
+</style>
+<div class="container-fluid">
+    <h3 class="mb-4"><%= title %></h3>
+
+    <div class="card card-report mb-4">
+        <div class="card-body">
+            <div class="row g-3 align-items-center">
+                <div class="col-auto"><label for="startDate" class="col-form-label">From</label></div>
+                <div class="col-auto"><input id="startDate" width="200" placeholder="เลือกวันที่เริ่ม" /></div>
+                <div class="col-auto"><label for="endDate" class="col-form-label">To</label></div>
+                <div class="col-auto"><input id="endDate" width="200" placeholder="เลือกวันที่สิ้นสุด" /></div>
+                <div class="col-auto"><button id="searchBtn" class="btn btn-primary"><i class="fas fa-search"></i> Search</button></div>
+            </div>
+        </div>
+    </div>
+    <div class="row text-center">
+        <div class="col-md-4">
+            <div class="card card-report bg-primary shadow-sm mb-3">
+                <div class="card-header"><h4>Total Bet</h4></div>
+                <div class="card-body"><h3 class="card-title" id="total_bet">0.00</h3></div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card card-report bg-success shadow-sm mb-3">
+                <div class="card-header"><h4>User Win</h4></div>
+                <div class="card-body"><h3 class="card-title" id="total_win">0.00</h3></div>
+            </div>
+        </div>
+         <div class="col-md-4">
+            <div class="card card-report bg-danger shadow-sm mb-3">
+                <div class="card-header"><h4>User Loss</h4></div>
+                <div class="card-body"><h3 class="card-title" id="total_loss">0.00</h3></div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card card-report">
+        <div class="card-header p-3">ประวัติรายการ</div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table id="reportTable" class="table table-dark table-striped mb-0" style="width:100%">
+                    <thead>
+                        <tr>
+                            <th>วันที่/เวลา</th>
+                            <th>Username</th>
+                            <th>เกม</th>
+                            <th>ค่ายเกม</th>
+                            <th>เดิมพัน</th>
+                            <th>ชนะ/แพ้</th>
+                            <th>สกุลเงิน</th>
+                            <th>Transaction ID</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<%- include('partials/footer'); %>
+
+<script>
+$(document).ready(function() {
+    // ส่วนของ JavaScript ไม่มีการเปลี่ยนแปลง
+    const startDatePicker = $('#startDate').datepicker({ uiLibrary: 'bootstrap5', format: 'mm/dd/yyyy' });
+    const endDatePicker = $('#endDate').datepicker({ uiLibrary: 'bootstrap5', format: 'mm/dd/yyyy' });
+    
+    const reportTable = $('#reportTable').DataTable({
+        "order": [[ 0, "desc" ]],
+        "pageLength": 25,
+        "language": { "processing": "กำลังประมวลผล...", "lengthMenu": "แสดง _MENU_ รายการ", "zeroRecords": "ไม่พบข้อมูล", "info": "แสดงหน้าที่ _PAGE_ จาก _PAGES_", "infoEmpty": "ไม่พบข้อมูล", "infoFiltered": "(กรองจากทั้งหมด _MAX_ รายการ)", "search": "ค้นหา:", "paginate": { "first": "หน้าแรก", "last": "หน้าสุดท้าย", "next": "ถัดไป", "previous": "ก่อนหน้า" } } 
+    });
+
+    function loadReportData(startDate, endDate) {
+        Swal.fire({ title: 'กำลังโหลดข้อมูล...', text: 'กรุณารอสักครู่', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
+
+        let apiUrl = '/api/user/report';
+        if (startDate && endDate) {
+            apiUrl += `?start=${startDate}&end=${endDate}`;
+        }
+
+        $.ajax({
+            url: apiUrl,
+            type: 'GET',
+            success: function(data) {
+                $('#total_bet').text(parseFloat(data.totals.total_bet).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+                $('#total_win').text(parseFloat(data.totals.total_win).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+                $('#total_loss').text(parseFloat(data.totals.total_loss).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+
+                reportTable.clear();
+                data.history.forEach(tx => {
+                    const winLossAmount = parseFloat(tx.winLoss);
+                    const winLossDisplay = `<span class="${winLossAmount >= 0 ? 'text-success' : 'text-danger'}">${winLossAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>`;
+                    const gameDisplay = `<img src="${tx.imageUrl}" class="game-icon" alt="${tx.gameName}" onerror="this.onerror=null;this.src='/img/default-game.png';"><span>${tx.gameName}</span>`;
+                    reportTable.row.add([ new Date(tx.createdDate).toLocaleString('th-TH'), tx.username, gameDisplay, tx.productId, parseFloat(tx.betAmount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }), winLossDisplay, tx.currency, tx.transactionId ]);
+                });
+                reportTable.draw();
+                Swal.close();
+            },
+            error: function(err) {
+                Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถดึงข้อมูลรายงานได้', 'error');
+                console.error(err);
+            }
+        });
+    }
+
+    $('#searchBtn').on('click', function() {
+        const startDate = startDatePicker.value();
+        const endDate = endDatePicker.value();
+        if (!startDate || !endDate) {
+            Swal.fire('ข้อมูลไม่ครบ', 'กรุณาเลือกช่วงวันที่ให้ครบถ้วน', 'warning');
+            return;
+        }
+        loadReportData(startDate, endDate);
+    });
+    loadReportData();
+});
+</script>

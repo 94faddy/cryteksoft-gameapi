@@ -1,0 +1,23 @@
+<%- include('partials/header') %>
+<div class="row justify-content-center">
+    <div class="col-md-8 text-center">
+        <div class="card bg-dark text-light">
+            <div class="card-header bg-secondary bg-opacity-25 border-secondary"><h3>ตั้งค่า Two-Factor Authentication</h3></div>
+            <div class="card-body">
+                <p>1. สแกน QR Code นี้ด้วยแอปพลิเคชัน Authenticator ของคุณ (เช่น Google Authenticator, Authy)</p>
+                <div class="d-inline-block bg-light p-2 rounded mb-3">
+                    <img src="<%= qrCode %>" alt="QR Code" class="img-fluid">
+                </div>
+                <p>หรือกรอกรหัสนี้ด้วยตนเอง:</p>
+                <pre class="d-inline-block px-3 py-2"><code><%= secretKey %></code></pre>
+                <hr class="border-secondary">
+                <p>2. กรอกรหัส 6 หลักที่ปรากฏในแอปของคุณเพื่อยืนยันการตั้งค่า</p>
+                <form id="verify2faForm" action="/2fa/verify" method="POST" class="d-inline-flex">
+                     <input type="text" name="token" class="form-control bg-dark text-light me-2" required maxlength="6" placeholder="รหัส 6 หลัก">
+                     <button type="submit" class="btn btn-success">ยืนยัน</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<%- include('partials/footer') %>

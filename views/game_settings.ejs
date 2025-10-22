@@ -1,0 +1,230 @@
+<%- include('partials/header', { user: user }) %>
+
+<style>
+    /* Custom styles for game settings page, adjusted for consistency */
+    .setting-card {
+        background-color: #212529; /* Consistent dark color */
+        color: #f8f9fa;
+        border: 1px solid #495057;
+        border-radius: 0.75rem;
+        padding: 2rem;
+        margin-bottom: 1.5rem;
+    }
+    .form-range::-webkit-slider-thumb {
+        background: #5a8dee;
+    }
+    .form-range::-moz-range-thumb {
+        background: #5a8dee;
+    }
+    .range-value {
+        font-weight: bold;
+        color: #5a8dee;
+    }
+    label.form-label {
+        font-weight: 500;
+        color: #ced4da;
+    }
+    .input-group-text {
+        background-color: #343a40;
+        color: #fff;
+        border-color: #495057;
+    }
+    .form-control {
+        background-color: #343a40;
+        color: #fff;
+        border: 1px solid #495057;
+    }
+    .form-control:focus {
+        background-color: #343a40;
+        color: #fff;
+        border-color: #5a8dee;
+        box-shadow: 0 0 0 0.25rem rgba(90, 141, 238, 0.25);
+    }
+    .btn-primary {
+        background-color: #5a8dee;
+        border: none;
+    }
+    .preset-btn-group .btn {
+        margin: 0 5px;
+        font-size: 0.9rem;
+    }
+</style>
+
+<div class="container my-5">
+    <h2 class="mb-4 text-white text-center">ตั้งค่าเกม (<%= user.name %>)</h2>
+
+    <div class="setting-card text-center">
+        <h4 class="mb-3">เลือกการตั้งค่าเริ่มต้น (Presets)</h4>
+        <p class="text-white-50 mb-4">เลือกรูปแบบการตั้งค่าที่ต้องการ จากนั้นกด "บันทึกการตั้งค่า" ด้านล่างเพื่อยืนยัน</p>
+        <div class="preset-btn-group">
+            <button type="button" class="btn btn-outline-info" id="preset-balanced">
+                <i class="bi bi-heptagon-half"></i> สมดุล (แนะนำ)
+            </button>
+        </div>
+    </div>
+
+    <form id="gameSettingsForm">
+        <div class="setting-card">
+            <h4 class="mb-4">Normal Game (Spin)</h4>
+            <div class="row mb-3">
+                <div class="col-md-6 mb-3">
+                    <label for="normal-spin" class="form-label">Normal Spin (โอกาส): <span class="range-value" id="normal-spin-value"></span></label>
+                    <input type="range" class="form-range" id="normal-spin" name="normal-spin" min="0" max="100" step="0.1" value="<%= user.gameSettings['normal-spin'] %>">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="less-bet" class="form-label">Less Bet (โอกาส): <span class="range-value" id="less-bet-value"></span></label>
+                    <input type="range" class="form-range" id="less-bet" name="less-bet" min="0" max="100" step="0.1" value="<%= user.gameSettings['less-bet'] %>">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="more-bet" class="form-label">More Bet (โอกาส): <span class="range-value" id="more-bet-value"></span></label>
+                    <input type="range" class="form-range" id="more-bet" name="more-bet" min="0" max="100" step="0.1" value="<%= user.gameSettings['more-bet'] %>">
+                </div>
+            </div>
+             <div class="row">
+                <div class="col-md-6">
+                    <label class="form-label">Less Bet (ตัวคูณ Min/Max)</label>
+                    <div class="input-group"><input type="number" min="0" step="1" class="form-control" name="less-bet-from" value="<%= user.gameSettings['less-bet-from'] %>"><span class="input-group-text">-</span><input type="number" min="0" step="1" class="form-control" name="less-bet-to" value="<%= user.gameSettings['less-bet-to'] %>"></div>
+                    </div>
+                <div class="col-md-6">
+                    <label class="form-label">More Bet (ตัวคูณ Min/Max)</label>
+                    <div class="input-group"><input type="number" min="0" step="1" class="form-control" name="more-bet-from" value="<%= user.gameSettings['more-bet-from'] %>"><span class="input-group-text">-</span><input type="number" min="0" step="1" class="form-control" name="more-bet-to" value="<%= user.gameSettings['more-bet-to'] %>"></div>
+                    </div>
+            </div>
+        </div>
+        
+        <div class="setting-card">
+            <h4 class="mb-4">Free Spin</h4>
+            <div class="row mb-3">
+                <div class="col-md-6 mb-3">
+                    <label for="freespin-less-bet" class="form-label">Free Spin Less Bet (โอกาส): <span class="range-value" id="freespin-less-bet-value"></span></label>
+                    <input type="range" class="form-range" id="freespin-less-bet" name="freespin-less-bet" min="0" max="100" step="0.1" value="<%= user.gameSettings['freespin-less-bet'] %>">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="freespin-more-bet" class="form-label">Free Spin More Bet (โอกาส): <span class="range-value" id="freespin-more-bet-value"></span></label>
+                    <input type="range" class="form-range" id="freespin-more-bet" name="freespin-more-bet" min="0" max="100" step="0.1" value="<%= user.gameSettings['freespin-more-bet'] %>">
+                </div>
+            </div>
+             <div class="row">
+                <div class="col-md-6">
+                    <label class="form-label">Free Spin Less Bet (ตัวคูณ Min/Max)</label>
+                     <div class="input-group"><input type="number" min="0" step="1" class="form-control" name="freespin-less-bet-from" value="<%= user.gameSettings['freespin-less-bet-from'] %>"><span class="input-group-text">-</span><input type="number" min="0" step="1" class="form-control" name="freespin-less-bet-to" value="<%= user.gameSettings['freespin-less-bet-to'] %>"></div>
+                     </div>
+                <div class="col-md-6">
+                    <label class="form-label">Free Spin More Bet (ตัวคูณ Min/Max)</label>
+                     <div class="input-group"><input type="number" min="0" step="1" class="form-control" name="freespin-more-bet-from" value="<%= user.gameSettings['freespin-more-bet-from'] %>"><span class="input-group-text">-</span><input type="number" min="0" step="1" class="form-control" name="freespin-more-bet-to" value="<%= user.gameSettings['freespin-more-bet-to'] %>"></div>
+                     </div>
+            </div>
+        </div>
+        
+        <div class="setting-card">
+            <h4 class="mb-4">Buy Feature</h4>
+             <div class="row mb-3">
+                <div class="col-md-6 mb-3">
+                    <label for="buy-feature-less-bet" class="form-label">Buy Feature Less Bet (โอกาส): <span class="range-value" id="buy-feature-less-bet-value"></span></label>
+                    <input type="range" class="form-range" id="buy-feature-less-bet" name="buy-feature-less-bet" min="0" max="100" step="0.1" value="<%= user.gameSettings['buy-feature-less-bet'] %>">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="buy-feature-more-bet" class="form-label">Buy Feature More Bet (โอกาส): <span class="range-value" id="buy-feature-more-bet-value"></span></label>
+                    <input type="range" class="form-range" id="buy-feature-more-bet" name="buy-feature-more-bet" min="0" max="100" step="0.1" value="<%= user.gameSettings['buy-feature-more-bet'] %>">
+                </div>
+             </div>
+             <div class="row">
+                <div class="col-md-6">
+                    <label class="form-label">Buy Feature Less Bet (ตัวคูณ Min/Max)</label>
+                     <div class="input-group"><input type="number" min="0" step="1" class="form-control" name="buy-feature-less-bet-from" value="<%= user.gameSettings['buy-feature-less-bet-from'] %>"><span class="input-group-text">-</span><input type="number" min="0" step="1" class="form-control" name="buy-feature-less-bet-to" value="<%= user.gameSettings['buy-feature-less-bet-to'] %>"></div>
+                     </div>
+                 <div class="col-md-6">
+                    <label class="form-label">Buy Feature More Bet (ตัวคูณ Min/Max)</label>
+                     <div class="input-group"><input type="number" min="0" step="1" class="form-control" name="buy-feature-more-bet-from" value="<%= user.gameSettings['buy-feature-more-bet-from'] %>"><span class="input-group-text">-</span><input type="number" min="0" step="1" class="form-control" name="buy-feature-more-bet-to" value="<%= user.gameSettings['buy-feature-more-bet-to'] %>"></div>
+                     </div>
+             </div>
+        </div>
+
+        <div class="d-grid">
+            <button type="submit" class="btn btn-primary px-5 py-2 fs-5">บันทึกการตั้งค่า</button>
+        </div>
+    </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const form = document.getElementById('gameSettingsForm');
+    const presets = {
+        balanced: {
+            'normal-spin': 85, 'less-bet': 35, 'less-bet-from': 0, 'less-bet-to': 1,
+            'more-bet': 8, 'more-bet-from': 2, 'more-bet-to': 4,
+            'freespin-less-bet': 1, 'freespin-less-bet-from': 0, 'freespin-less-bet-to': 4,
+            'freespin-more-bet': 0, 'freespin-more-bet-from': 50, 'freespin-more-bet-to': 60,
+            'buy-feature-less-bet': 90, 'buy-feature-less-bet-from': 0, 'buy-feature-less-bet-to': 50,
+            'buy-feature-more-bet': 4, 'buy-feature-more-bet-from': 50, 'buy-feature-more-bet-to': 60
+        }
+    };
+    function applyPreset(presetName) {
+        const selectedPreset = presets[presetName];
+        if (!selectedPreset) return;
+        for (const key in selectedPreset) {
+            const input = form.elements[key];
+            if (input) {
+                input.value = selectedPreset[key];
+                if (input.type === 'range') {
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+            }
+        }
+        Swal.fire({
+            icon: 'info', title: 'ใช้ค่าที่ตั้งไว้เรียบร้อย',
+            text: 'กรุณากด "บันทึกการตั้งค่า" เพื่อยืนยันการเปลี่ยนแปลง',
+            toast: true, position: 'top-end',
+            showConfirmButton: false, timer: 3000
+        });
+    }
+    document.getElementById('preset-balanced').addEventListener('click', () => applyPreset('balanced'));
+    function initializeSliders() {
+        const sliders = [
+            'normal-spin', 'less-bet', 'more-bet', 
+            'freespin-less-bet', 'freespin-more-bet',
+            'buy-feature-less-bet', 'buy-feature-more-bet'
+        ];
+        sliders.forEach(id => {
+            const range = document.getElementById(id);
+            const valueSpan = document.getElementById(id + '-value');
+            if(range && valueSpan) {
+                const updateValue = () => { 
+                    valueSpan.textContent = `(${parseFloat(range.value).toFixed(1)}%)`; 
+                };
+                range.addEventListener('input', updateValue);
+                updateValue();
+            }
+        });
+    }
+    initializeSliders();
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(form);
+        const data = Object.fromEntries(formData.entries());
+        try {
+            const response = await fetch('/api/user/update-game-settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            const result = await response.json();
+            if (result.success) {
+                Swal.fire({
+                    icon: 'success', title: 'สำเร็จ!', text: 'บันทึกการตั้งค่าเรียบร้อยแล้ว',
+                    timer: 2000, showConfirmButton: false
+                });
+            } else {
+                throw new Error(result.message);
+            }
+        } catch (error) {
+            console.error('Error submitting form:', error);
+            Swal.fire({
+                icon: 'error', title: 'เกิดข้อผิดพลาด!', text: error.message || 'ไม่สามารถเชื่อมต่อกับ Server ได้'
+            });
+        }
+    });
+});
+</script>
+
+<%- include('partials/footer') %>
