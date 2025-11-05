@@ -5,9 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="icon" type="image/png" href="/img/cryteksoft-logo.png">
     <title>CRYTEKSOFT | GAME API | REPORT</title>
+    
+    <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
+    
+    <!-- Gijgo Datepicker CSS -->
     <link href="https://unpkg.com/gijgo@1.9.14/css/gijgo.min.css" rel="stylesheet" type="text/css" />
+    
+    <!-- DataTables CSS -->
     <link href="https://cdn.datatables.net/1.12.1/css/dataTables.bootstrap5.min.css" rel="stylesheet">
 
     <style>
@@ -20,7 +28,7 @@
         body {
             display: flex;
             flex-direction: column;
-            min-height: 100vh; /* Body takes full screen height */
+            min-height: 100vh;
             background-color: #151414;
             color: #f8f9fa;
         }
@@ -29,7 +37,7 @@
             display: flex;
             width: 100%;
             align-items: stretch;
-            flex: 1; /* Wrapper grows to fill space, pushing footer down */
+            flex: 1;
         }
 
         /* 2. Sidebar Styles */
@@ -41,7 +49,6 @@
             transition: margin-left 0.3s ease-in-out;
         }
 
-        /* Sidebar state for DESKTOP: collapsed */
         #sidebar.collapsed {
             margin-left: calc(-1 * var(--sidebar-width));
         }
@@ -86,9 +93,8 @@
                 left: 0;
                 height: 100vh;
                 z-index: 1045;
-                margin-left: calc(-1 * var(--sidebar-width)); /* Hidden by default on mobile */
+                margin-left: calc(-1 * var(--sidebar-width));
             }
-            /* Sidebar state for MOBILE: active (visible) */
             #sidebar.active {
                 margin-left: 0;
             }
@@ -104,7 +110,7 @@
             }
         }
 
-        /* 4. Gijgo Date Picker Dark Theme - NEWLY ADDED */
+        /* 4. Gijgo Date Picker Dark Theme */
         .gj-picker-bootstrap {
             background-color: #2c3034;
             border: 1px solid #495057;
@@ -142,6 +148,31 @@
         .gj-picker-bootstrap tbody tr td.active {
             background-color: #0d6efd;
             color: #fff;
+        }
+        
+        /* 5. DataTables Dark Theme */
+        .dataTables_wrapper .dataTables_length,
+        .dataTables_wrapper .dataTables_filter,
+        .dataTables_wrapper .dataTables_info,
+        .dataTables_wrapper .dataTables_processing,
+        .dataTables_wrapper .dataTables_paginate {
+            color: #f8f9fa;
+        }
+        
+        .dataTables_wrapper .dataTables_paginate .paginate_button {
+            color: #f8f9fa !important;
+        }
+        
+        .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+            color: #fff !important;
+            background: #495057;
+            border: 1px solid #495057;
+        }
+        
+        .dataTables_wrapper .dataTables_paginate .paginate_button.current {
+            color: #fff !important;
+            background: #0d6efd;
+            border: 1px solid #0d6efd;
         }
     </style>
 </head>

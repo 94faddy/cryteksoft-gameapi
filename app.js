@@ -35,6 +35,21 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 
+// --- 🔒 Content Security Policy (CSP) ---
+app.use((req, res, next) => {
+  res.setHeader(
+    'Content-Security-Policy',
+    "default-src 'self'; " +
+    "script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com https://code.jquery.com https://cdn.jsdelivr.net https://unpkg.com https://cdn.datatables.net https://static.cloudflareinsights.com; " +
+    "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com https://cdn.datatables.net; " +
+    "font-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com; " +
+    "img-src 'self' data: https:; " +
+    "connect-src 'self' https://challenges.cloudflare.com https://cdn.jsdelivr.net; " +
+    "frame-src 'self' https://challenges.cloudflare.com;"
+  );
+  next();
+});
+
 // --- ⚙️ Connect to MongoDB (for session + models) ---
 mongoose.connect(process.env.MONGO_URI_TMP)
   .then(() => {

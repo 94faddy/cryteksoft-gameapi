@@ -553,7 +553,7 @@ router.post('/login', async function (req, res, next) {
     // console.log(userapi);
     var code = gameIdList[bodydata.gameCode];
     //เส้นเข้าเกม pg
-    var resultss = 'https://m.elite-gamesoft.com/' + code + '/index.html?language=th&bet_type=1&operator_token=T65-AWDF-WAUE-OQ09-GST1&operator_player_session=' + userapi.token + '&or=cdn.pgsoft-th.com';
+    var resultss = 'https://m.pgsoft-th.com/' + code + '/index.html?language=th&bet_type=1&operator_token=T65-AWDF-WAUE-OQ09-GST1&operator_player_session=' + userapi.token + '&or=cdn.pgsoft-th.com';
     //เส้นเข้าเกม jili
     if (bodydata.game == 'jl') {
       resultss = 'https://jili-server.foxi-bet.com/play/jili?operator_player_session=' + userapi.token + '&operator_token=T65-AWDF-WAUE-OQ09-GST1&game_code=' + bodydata.gameCode + '&game_id=' + jili_list[bodydata.gameCode];

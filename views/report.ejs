@@ -1,7 +1,6 @@
 <%- include('partials/header'); %>
 
 <style>
-    /* สไตล์ชีทส่วนนี้ไม่มีการเปลี่ยนแปลง */
     .card-report { background-color: #212529; border: 1px solid #3e444a; color: white; }
     .card-report .card-body { display: flex; flex-direction: column; align-items: center; justify-content: center; }
     .card-report .card-title { font-size: 1rem; color: #ffffff; }
@@ -10,14 +9,12 @@
     .text-danger { color: #dc3545 !important; }
     #reportTable img.game-icon { width: 32px; height: 32px; border-radius: 5px; margin-right: 8px; vertical-align: middle; }
     .table-dark { --bs-table-bg: #212529; --bs-table-striped-bg: #2c3034; --bs-table-striped-color: #fff; --bs-table-active-bg: #373b3e; --bs-table-active-color: #fff; --bs-table-hover-bg: #323539; --bs-table-hover-color: #fff; color: #fff; border-color: #373b3e; }
-</style>
-
-<style>
     #reportTable th, #reportTable td {
-        white-space: nowrap; /* ป้องกันการตัดข้อความขึ้นบรรทัดใหม่ */
-        vertical-align: middle; /* จัดให้รูปภาพและข้อความอยู่กึ่งกลางแนวตั้ง */
+        white-space: nowrap;
+        vertical-align: middle;
     }
 </style>
+
 <div class="container-fluid">
     <h3 class="mb-4"><%= title %></h3>
 
@@ -82,18 +79,55 @@
 
 <script>
 $(document).ready(function() {
-    // ส่วนของ JavaScript ไม่มีการเปลี่ยนแปลง
+    // เช็คว่า DataTable พร้อมใช้งานหรือยัง
+    if (typeof $.fn.DataTable === 'undefined') {
+        console.error('DataTables ไม่ถูกโหลด กรุณาตรวจสอบ CSP และ CDN');
+        Swal.fire({
+            icon: 'error',
+            title: 'เกิดข้อผิดพลาด',
+            text: 'ไม่สามารถโหลด DataTables ได้ กรุณารีเฟรชหน้าเว็บ',
+            confirmButtonText: 'รีเฟรช',
+            allowOutsideClick: false
+        }).then((result) => {
+            if (result.isConfirmed) {
+                location.reload();
+            }
+        });
+        return;
+    }
+
     const startDatePicker = $('#startDate').datepicker({ uiLibrary: 'bootstrap5', format: 'mm/dd/yyyy' });
     const endDatePicker = $('#endDate').datepicker({ uiLibrary: 'bootstrap5', format: 'mm/dd/yyyy' });
     
     const reportTable = $('#reportTable').DataTable({
         "order": [[ 0, "desc" ]],
         "pageLength": 25,
-        "language": { "processing": "กำลังประมวลผล...", "lengthMenu": "แสดง _MENU_ รายการ", "zeroRecords": "ไม่พบข้อมูล", "info": "แสดงหน้าที่ _PAGE_ จาก _PAGES_", "infoEmpty": "ไม่พบข้อมูล", "infoFiltered": "(กรองจากทั้งหมด _MAX_ รายการ)", "search": "ค้นหา:", "paginate": { "first": "หน้าแรก", "last": "หน้าสุดท้าย", "next": "ถัดไป", "previous": "ก่อนหน้า" } } 
+        "language": { 
+            "processing": "กำลังประมวลผล...", 
+            "lengthMenu": "แสดง _MENU_ รายการ", 
+            "zeroRecords": "ไม่พบข้อมูล", 
+            "info": "แสดงหน้าที่ _PAGE_ จาก _PAGES_", 
+            "infoEmpty": "ไม่พบข้อมูล", 
+            "infoFiltered": "(กรองจากทั้งหมด _MAX_ รายการ)", 
+            "search": "ค้นหา:", 
+            "paginate": { 
+                "first": "หน้าแรก", 
+                "last": "หน้าสุดท้าย", 
+                "next": "ถัดไป", 
+                "previous": "ก่อนหน้า" 
+            } 
+        } 
     });
 
     function loadReportData(startDate, endDate) {
-        Swal.fire({ title: 'กำลังโหลดข้อมูล...', text: 'กรุณารอสักครู่', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
+        Swal.fire({ 
+            title: 'กำลังโหลดข้อมูล...', 
+            text: 'กรุณารอสักครู่', 
+            allowOutsideClick: false, 
+            didOpen: () => { 
+                Swal.showLoading(); 
+            } 
+        });
 
         let apiUrl = '/api/user/report';
         if (startDate && endDate) {
@@ -113,7 +147,16 @@ $(document).ready(function() {
                     const winLossAmount = parseFloat(tx.winLoss);
                     const winLossDisplay = `<span class="${winLossAmount >= 0 ? 'text-success' : 'text-danger'}">${winLossAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>`;
                     const gameDisplay = `<img src="${tx.imageUrl}" class="game-icon" alt="${tx.gameName}" onerror="this.onerror=null;this.src='/img/default-game.png';"><span>${tx.gameName}</span>`;
-                    reportTable.row.add([ new Date(tx.createdDate).toLocaleString('th-TH'), tx.username, gameDisplay, tx.productId, parseFloat(tx.betAmount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }), winLossDisplay, tx.currency, tx.transactionId ]);
+                    reportTable.row.add([ 
+                        new Date(tx.createdDate).toLocaleString('th-TH'), 
+                        tx.username, 
+                        gameDisplay, 
+                        tx.productId, 
+                        parseFloat(tx.betAmount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }), 
+                        winLossDisplay, 
+                        tx.currency, 
+                        tx.transactionId 
+                    ]);
                 });
                 reportTable.draw();
                 Swal.close();
@@ -134,6 +177,8 @@ $(document).ready(function() {
         }
         loadReportData(startDate, endDate);
     });
+    
+    // โหลดข้อมูลครั้งแรก
     loadReportData();
 });
 </script>
