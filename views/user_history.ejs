@@ -211,6 +211,85 @@
     </div>
 </div>
 
+<!-- ✅ Modal สำหรับตั้งค่าเกม (Per-User Settings) -->
+<div class="modal fade" id="gameSettingsModal" tabindex="-1" aria-labelledby="gameSettingsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content bg-dark text-light">
+            <form id="gameSettingsForm">
+                <div class="modal-header bg-primary text-white border-secondary">
+                    <h5 class="modal-title" id="gameSettingsModalLabel">
+                        <i class="fa-solid fa-gamepad me-2"></i>ตั้งค่าเกมสำหรับ: <span id="settings-modal-username" class="fw-bold"></span>
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- เลือกโหมด: ใช้ Agent Settings หรือ Custom -->
+                    <div class="card bg-secondary mb-4">
+                        <div class="card-body">
+                            <h6 class="mb-3">โหมดการตั้งค่า</h6>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="settingsMode" id="useAgentSettings" value="agent" checked>
+                                <label class="form-check-label" for="useAgentSettings">
+                                    ใช้การตั้งค่าจาก Agent (Default)
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="settingsMode" id="useCustomSettings" value="custom">
+                                <label class="form-check-label" for="useCustomSettings">
+                                    ตั้งค่าเอง (Custom per-user)
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ส่วน Custom Settings -->
+                    <div id="customSettingsSection" style="display: none;">
+                        <!-- Presets -->
+                        <div class="text-center mb-4 p-3 bg-secondary rounded">
+                            <h6 class="mb-2">เลือกการตั้งค่าเริ่มต้น (Presets)</h6>
+                            <div class="preset-btn-group">
+                                <button type="button" class="btn btn-sm btn-outline-danger" id="preset-house-advantage">
+                                    บ้านได้เปรียบสูง (RTP ~7-10%)
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-primary" id="preset-balanced">
+                                    สมดุล (RTP ~55-65%, แนะนำ)
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-success" id="preset-player-friendly">
+                                    ผู้เล่นได้เปรียบ (RTP ~55-65%)
+                                </button>
+                            </div>
+                            <div class="mt-3 text-start">
+                                <div class="alert alert-info mb-0">
+                                    <small>
+                                        <strong>📌 คำอธิบาย:</strong><br>
+                                        • <strong>บ้านได้เปรียบสูง:</strong> Free Spin หายากมาก, บ้านได้กำไร ~90-93%<br>
+                                        • <strong>สมดุล:</strong> โอกาสชนะ 25-30%, บ้านได้เปรียบ ~35-45%<br>
+                                        • <strong>ผู้เล่นได้เปรียบ:</strong> Free Spin ออกบ่อยกว่า, บ้านได้เปรียบน้อย ~35-45%
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Settings Form -->
+                        <div id="settings-form-content"></div>
+                    </div>
+
+                    <div id="settings-form-loader" class="text-center d-none">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2">กำลังโหลดข้อมูล...</p>
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+                    <button type="submit" class="btn btn-primary">บันทึกการตั้งค่า</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <style>
     #historyTable img.game-icon {
         width: 32px;
@@ -222,6 +301,10 @@
     #historyTable th, #historyTable td {
         white-space: nowrap;
         vertical-align: middle;
+    }
+    .preset-btn-group .btn {
+        margin: 0 5px;
+        font-size: 0.9rem;
     }
 </style>
 
@@ -243,8 +326,56 @@ document.addEventListener('DOMContentLoaded', function() {
     const btnModalSearch = document.getElementById('btnModalSearch');
     const btnModalReset = document.getElementById('btnModalReset');
 
+    // ✅ Game Settings Modal
+    const gameSettingsModal = new bootstrap.Modal(document.getElementById('gameSettingsModal'));
+    const gameSettingsForm = document.getElementById('gameSettingsForm');
+    const settingsModalUsername = document.getElementById('settings-modal-username');
+    const settingsFormContent = document.getElementById('settings-form-content');
+    const settingsFormLoader = document.getElementById('settings-form-loader');
+    const customSettingsSection = document.getElementById('customSettingsSection');
+    const useAgentSettings = document.getElementById('useAgentSettings');
+    const useCustomSettings = document.getElementById('useCustomSettings');
+
     let currentUsername = '';
     let allPlayers = [];
+
+    // Default Settings
+    const defaultSettings = {
+        'normal-spin': 85, 'less-bet': 35, 'less-bet-from': 0, 'less-bet-to': 1,
+        'more-bet': 8, 'more-bet-from': 2, 'more-bet-to': 4,
+        'freespin-less-bet': 1, 'freespin-less-bet-from': 0, 'freespin-less-bet-to': 4,
+        'freespin-more-bet': 0, 'freespin-more-bet-from': 50, 'freespin-more-bet-to': 60,
+        'buy-feature-less-bet': 90, 'buy-feature-less-bet-from': 0, 'buy-feature-less-bet-to': 50,
+        'buy-feature-more-bet': 4, 'buy-feature-more-bet-from': 50, 'buy-feature-more-bet-to': 60
+    };
+
+    // Presets
+    const presets = {
+        house_advantage: {
+            'normal-spin': 85, 'less-bet': 12, 'less-bet-from': 0, 'less-bet-to': 0.5,
+            'more-bet': 3, 'more-bet-from': 0.8, 'more-bet-to': 2,
+            'freespin-less-bet': 2, 'freespin-less-bet-from': 0, 'freespin-less-bet-to': 0,
+            'freespin-more-bet': 0.5, 'freespin-more-bet-from': 0, 'freespin-more-bet-to': 15,
+            'buy-feature-less-bet': 80, 'buy-feature-less-bet-from': 0, 'buy-feature-less-bet-to': 20,
+            'buy-feature-more-bet': 8, 'buy-feature-more-bet-from': 20, 'buy-feature-more-bet-to': 60
+        },
+        balanced: {
+            'normal-spin': 50, 'less-bet': 35, 'less-bet-from': 0, 'less-bet-to': 1.2,
+            'more-bet': 15, 'more-bet-from': 1.5, 'more-bet-to': 4,
+            'freespin-less-bet': 3, 'freespin-less-bet-from': 2, 'freespin-less-bet-to': 10,
+            'freespin-more-bet': 1, 'freespin-more-bet-from': 10, 'freespin-more-bet-to': 30,
+            'buy-feature-less-bet': 65, 'buy-feature-less-bet-from': 5, 'buy-feature-less-bet-to': 40,
+            'buy-feature-more-bet': 20, 'buy-feature-more-bet-from': 40, 'buy-feature-more-bet-to': 100
+        },
+        player_friendly: {
+            'normal-spin': 55, 'less-bet': 32, 'less-bet-from': 0.2, 'less-bet-to': 1.1,
+            'more-bet': 13, 'more-bet-from': 1.5, 'more-bet-to': 3.5,
+            'freespin-less-bet': 1.5, 'freespin-less-bet-from': 1, 'freespin-less-bet-to': 8,
+            'freespin-more-bet': 0.5, 'freespin-more-bet-from': 8, 'freespin-more-bet-to': 20,
+            'buy-feature-less-bet': 70, 'buy-feature-less-bet-from': 5, 'buy-feature-less-bet-to': 30,
+            'buy-feature-more-bet': 15, 'buy-feature-more-bet-from': 30, 'buy-feature-more-bet-to': 80
+        }
+    };
 
     // เริ่มต้น Datepicker
     const startDatePicker = $(filterStartDate).datepicker({ uiLibrary: 'bootstrap5', format: 'mm/dd/yyyy' });
@@ -298,8 +429,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     <td>${player.totalGames}</td>
                     <td><small>${lastPlayed}</small></td>
                     <td>
-                        <button class="btn btn-sm btn-outline-primary view-history-btn" data-username="${player.username}">
-                            <i class="fa-solid fa-clock-rotate-left me-1"></i>ดูประวัติ
+                        <button class="btn btn-sm btn-outline-primary view-history-btn me-1" data-username="${player.username}">
+                            <i class="fa-solid fa-clock-rotate-left me-1"></i>ประวัติ
+                        </button>
+                        <button class="btn btn-sm btn-outline-warning settings-btn" data-username="${player.username}">
+                            <i class="fa-solid fa-gamepad me-1"></i>ตั้งค่า
                         </button>
                     </td>
                 </tr>
@@ -311,6 +445,14 @@ document.addEventListener('DOMContentLoaded', function() {
             btn.addEventListener('click', function() {
                 currentUsername = this.getAttribute('data-username');
                 loadPlayerHistory(currentUsername);
+            });
+        });
+
+        // ผูก Event ให้กับปุ่มตั้งค่า
+        document.querySelectorAll('.settings-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                currentUsername = this.getAttribute('data-username');
+                loadPlayerSettings(currentUsername);
             });
         });
     }
@@ -389,9 +531,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // แสดงประวัติในตาราง (อัพเดทเพื่อแสดงรูปภาพและชื่อเกม)
+    // แสดงประวัติในตาราง
     function displayPlayerHistory(history, summary) {
-        // อัปเดตสถิติ
         document.getElementById('modal-total-bet').textContent = summary.totalBet.toFixed(2);
         document.getElementById('modal-total-win').textContent = summary.totalWin.toFixed(2);
         document.getElementById('modal-win-loss').textContent = summary.winLoss.toFixed(2);
@@ -422,7 +563,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }).join('');
     }
 
-    // ปุ่มค้นหาใน Modal
+    // ปุ่มค้นหาใน Modal ประวัติ
     btnModalSearch.addEventListener('click', function() {
         const start = modalStartDatePicker.value();
         const end = modalEndDatePicker.value();
@@ -437,13 +578,170 @@ document.addEventListener('DOMContentLoaded', function() {
         loadPlayerHistory(currentUsername, start, end, startTime, endTime);
     });
 
-    // ปุ่มรีเซ็ตใน Modal
+    // ปุ่มรีเซ็ตใน Modal ประวัติ
     btnModalReset.addEventListener('click', function() {
         modalStartDatePicker.value('');
         modalEndDatePicker.value('');
         modalStartTime.value = '';
         modalEndTime.value = '';
         loadPlayerHistory(currentUsername);
+    });
+
+    // ===================================================================
+    // ✅ จัดการ Game Settings Modal
+    // ===================================================================
+
+    // เปลี่ยนโหมด: Agent Settings <-> Custom Settings
+    useAgentSettings.addEventListener('change', function() {
+        if (this.checked) {
+            customSettingsSection.style.display = 'none';
+        }
+    });
+
+    useCustomSettings.addEventListener('change', function() {
+        if (this.checked) {
+            customSettingsSection.style.display = 'block';
+        }
+    });
+
+    // ฟังก์ชันโหลด Settings ของ Player
+    async function loadPlayerSettings(username) {
+        settingsModalUsername.textContent = username;
+        settingsFormContent.innerHTML = '';
+        settingsFormLoader.classList.remove('d-none');
+        customSettingsSection.style.display = 'none';
+        gameSettingsModal.show();
+
+        try {
+            const response = await fetch(`/api/user/player-settings/${username}`);
+            const data = await response.json();
+
+            if (!data.success) throw new Error(data.message);
+
+            // ตั้งค่า Radio Button
+            if (data.useAgentSettings) {
+                useAgentSettings.checked = true;
+                customSettingsSection.style.display = 'none';
+            } else {
+                useCustomSettings.checked = true;
+                customSettingsSection.style.display = 'block';
+            }
+
+            // สร้างฟอร์ม Settings
+            const settings = { ...defaultSettings, ...data.settings };
+            buildSettingsForm(settings);
+
+        } catch (error) {
+            Swal.fire({ 
+                icon: 'error', 
+                title: 'ผิดพลาด!', 
+                text: 'ไม่สามารถโหลดข้อมูลการตั้งค่าได้: ' + error.message 
+            });
+            gameSettingsModal.hide();
+        } finally {
+            settingsFormLoader.classList.add('d-none');
+        }
+    }
+
+    // ฟังก์ชันสร้างฟอร์ม Settings
+    function buildSettingsForm(settings) {
+        const formHtml = `
+            <div class="row">
+                ${Object.keys(defaultSettings).map(key => {
+                    const value = settings[key] !== undefined ? settings[key] : defaultSettings[key];
+                    const label = key.replace(/-/g, ' ');
+                    
+                    if (key.includes('-bet') && !key.includes('-from') && !key.includes('-to') || key.includes('normal-spin')) {
+                        return `
+                        <div class="col-md-6 mb-3">
+                            <label for="setting-${key}" class="form-label">${label} 
+                                <span id="setting-${key}-value" class="text-primary fw-bold"></span>
+                            </label>
+                            <input type="range" class="form-range" id="setting-${key}" name="${key}" min="0.1" max="100" step="0.1" value="${value}">
+                        </div>`;
+                    } else {
+                        return `
+                        <div class="col-md-6 mb-3">
+                            <label for="setting-${key}" class="form-label">${label}</label>
+                            <input type="number" min="0" step="0.1" class="form-control bg-dark text-light" id="setting-${key}" name="${key}" value="${value}">
+                        </div>`;
+                    }
+                }).join('')}
+            </div>
+        `;
+        settingsFormContent.innerHTML = formHtml;
+        setupRangeSlider(settingsFormContent);
+    }
+
+    // Setup Range Slider
+    function setupRangeSlider(container) {
+        container.querySelectorAll('input[type="range"]').forEach(range => {
+            const valueSpan = document.getElementById(range.id + '-value');
+            const updateSpan = () => {
+                if (valueSpan) {
+                    valueSpan.textContent = `(${parseFloat(range.value).toFixed(1)}%)`;
+                }
+            };
+            range.addEventListener('input', updateSpan);
+            updateSpan();
+        });
+    }
+
+    // Apply Preset
+    function applyPreset(presetName) {
+        const selectedPreset = presets[presetName];
+        for (const key in selectedPreset) {
+            const input = gameSettingsForm.elements[key];
+            if (input) {
+                input.value = selectedPreset[key];
+                if (input.type === 'range') {
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+            }
+        }
+    }
+
+    document.getElementById('preset-house-advantage').addEventListener('click', () => applyPreset('house_advantage'));
+    document.getElementById('preset-balanced').addEventListener('click', () => applyPreset('balanced'));
+    document.getElementById('preset-player-friendly').addEventListener('click', () => applyPreset('player_friendly'));
+
+    // Submit Game Settings Form
+    gameSettingsForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const formData = new FormData(gameSettingsForm);
+        const data = Object.fromEntries(formData.entries());
+
+        // เพิ่ม username และ useAgentSettings
+        data.username = currentUsername;
+        data.useAgentSettings = useAgentSettings.checked;
+
+        try {
+            const response = await fetch('/api/user/update-player-settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            const result = await response.json();
+
+            if (result.success) {
+                Swal.fire({ 
+                    icon: 'success', 
+                    title: 'สำเร็จ!', 
+                    text: result.message, 
+                    timer: 2000, 
+                    showConfirmButton: false 
+                });
+                gameSettingsModal.hide();
+            } else {
+                throw new Error(result.message);
+            }
+        } catch (error) {
+            Swal.fire({ 
+                icon: 'error', 
+                title: 'เกิดข้อผิดพลาด!', 
+                text: error.message 
+            });
+        }
     });
 
     // โหลดข้อมูลเริ่มต้น

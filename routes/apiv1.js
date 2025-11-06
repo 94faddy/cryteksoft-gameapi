@@ -14,44 +14,14 @@ function generateKey(size = 32, format = 'base64') {
   }
 
 router.get('/', function(req, res, next) {
-  //  console.log(req.user);
   console.log('sysdate ::==',moment().format('L'));
   return res.json({ message: 'Welcome 🙌' });
     
 })
 
-router.post('/verifySession', async function(req, res, next) {
-    var bodydata = req.body;
-
-    // ค้นหา user และ populate ข้อมูล apikey มาด้วย
-    var user =  await User.findOne({token: bodydata.sessionToken}).populate("apikey");
-
-    // ตรวจสอบว่าไม่พบ user หรือ user ไม่มี apikey ผูกอยู่
-    if(!user || !user.apikey){
-      const jsonResponse = {
-            "id": bodydata.id,
-            "statusCode": 30001,
-            "timestampMillis": bodydata.timestampMillis,
-            "productId": bodydata.productId,
-            "currency": bodydata.currency,
-            "username": bodydata.username
-          };
-          return res.json(jsonResponse);
-    }
-
-    // บันทึก secret_key และอัปเดตข้อมูล user
-    user.secret_key = bodydata.secret_key;
-    user.data.username = user.userid; // ตั้งค่า username ใน data ให้ตรงกับ userid
-    await user.save();
-
-    // --- START: โค้ดส่วนที่อัปเดตใหม่ ---
-
-    // 1. ดึงค่า gameSettings จาก apikey ของ user
-    const settings = user.apikey.gameSettings;
-
-    // 2. ตรวจสอบว่ามี custom setting หรือไม่ ถ้าไม่มีให้ใช้ค่า default จาก schema
-    // (Mongoose จะใส่ค่า default ให้โดยอัตโนมัติถ้า field นั้นว่าง)
-    const gameSettingsPayload = {
+// ✅ ฟังก์ชันช่วย: สร้าง Game Settings Payload
+function buildGameSettingsPayload(settings) {
+    return {
         "setting": [
             {
                 "name": "normal-spin",
@@ -95,8 +65,6 @@ router.post('/verifySession', async function(req, res, next) {
                 }
             }
         ],
-        "username": user.userid,
-        "isPlayerSetting": true,
         "buyFeatureSetting": [
             {
                 "name": "buy-feature-less-bet",
@@ -118,8 +86,41 @@ router.post('/verifySession', async function(req, res, next) {
             }
         ]
     };
+}
 
-    // 3. สร้าง jsonResponse ที่จะส่งกลับ
+router.post('/verifySession', async function(req, res, next) {
+    var bodydata = req.body;
+
+    var user =  await User.findOne({token: bodydata.sessionToken}).populate("apikey");
+
+    if(!user || !user.apikey){
+      const jsonResponse = {
+            "id": bodydata.id,
+            "statusCode": 30001,
+            "timestampMillis": bodydata.timestampMillis,
+            "productId": bodydata.productId,
+            "currency": bodydata.currency,
+            "username": bodydata.username
+          };
+          return res.json(jsonResponse);
+    }
+
+    user.secret_key = bodydata.secret_key;
+    user.data.username = user.userid;
+    await user.save();
+
+    // ✅ เลือก Settings: User Settings → Agent Settings
+    let effectiveSettings;
+    if (user.useAgentSettings || !user.gameSettings || Object.keys(user.gameSettings).length === 0) {
+        effectiveSettings = user.apikey.gameSettings;
+    } else {
+        effectiveSettings = user.gameSettings;
+    }
+
+    const gameSettingsPayload = buildGameSettingsPayload(effectiveSettings);
+    gameSettingsPayload.username = user.userid;
+    gameSettingsPayload.isPlayerSetting = true;
+
     const jsonResponse = {
         "id": bodydata.id,
         "statusCode": 0,
@@ -127,10 +128,8 @@ router.post('/verifySession', async function(req, res, next) {
         "productId": bodydata.productId,
         "currency": bodydata.currency,
         "username": user.userid,
-        "game_setting" : gameSettingsPayload // ใช้ค่าที่สร้างจาก setting ของ Agent
+        "game_setting" : gameSettingsPayload
       };
-
-    // --- END: โค้ดส่วนที่อัปเดตใหม่ ---
 
     return res.json(jsonResponse);
 });
@@ -138,10 +137,9 @@ router.post('/verifySession', async function(req, res, next) {
 router.post('/checkBalance', async function(req, res, next) {
     var bodydata = req.body;
     try {
-        // ค้นหา user และ populate apikey มาด้วย
         var user =  await User.findOne({userid: bodydata.username, secret_key:bodydata.secret_key}).populate("apikey");
 
-        if(!user || !user.apikey){ // เพิ่มการตรวจสอบ apikey ด้วย
+        if(!user || !user.apikey){
             const jsonResponse = {
                 "id": bodydata.id,
                 "statusCode": 30001,
@@ -154,9 +152,6 @@ router.post('/checkBalance', async function(req, res, next) {
             return res.json(jsonResponse);   
         }
 
-        // --- START: แก้ไขส่วนนี้ ---
-
-        // 1. เรียก API ของ Agent เพื่อเช็คยอดเงิน
         var data = JSON.stringify({ "username": user.username });
         var config = {
             method: 'post',
@@ -170,46 +165,36 @@ router.post('/checkBalance', async function(req, res, next) {
         };
         var mydata = await axios.request(config);
 
-        // 2. ดึงค่า gameSettings จาก apikey ของ user (เหมือนใน verifySession)
-        const settings = user.apikey.gameSettings;
-        const gameSettingsPayload = {
-            "setting": [
-                { "name": "normal-spin", "output": "normal-spin", "percent": settings['normal-spin'] },
-                { "name": "less-bet", "output": "less-bet", "percent": settings['less-bet'], "option": { "from": settings['less-bet-from'], "to": settings['less-bet-to'] } },
-                { "name": "more-bet", "output": "more-bet", "percent": settings['more-bet'], "option": { "from": settings['more-bet-from'], "to": settings['more-bet-to'] } },
-                { "name": "freespin-less-bet", "output": "freespin-less-bet", "percent": settings['freespin-less-bet'], "option": { "from": settings['freespin-less-bet-from'], "to": settings['freespin-less-bet-to'] } },
-                { "name": "freespin-more-bet", "output": "freespin-more-bet", "percent": settings['freespin-more-bet'], "option": { "from": settings['freespin-more-bet-from'], "to": settings['freespin-more-bet-to'] } }
-            ],
-            "username": user.userid,
-            "isPlayerSetting": true,
-            "buyFeatureSetting": [
-                { "name": "buy-feature-less-bet", "output": "freespin-less-bet", "percent": settings['buy-feature-less-bet'], "option": { "from": settings['buy-feature-less-bet-from'], "to": settings['buy-feature-less-bet-to'] } },
-                { "name": "buy-feature-more-bet", "output": "freespin-more-bet", "percent": settings['buy-feature-more-bet'], "option": { "from": settings['buy-feature-more-bet-from'], "to": settings['buy-feature-more-bet-to'] } }
-            ]
-        };
+        // ✅ เลือก Settings: User Settings → Agent Settings
+        let effectiveSettings;
+        if (user.useAgentSettings || !user.gameSettings || Object.keys(user.gameSettings).length === 0) {
+            effectiveSettings = user.apikey.gameSettings;
+        } else {
+            effectiveSettings = user.gameSettings;
+        }
 
-        // 3. สร้าง jsonResponse ที่สมบูรณ์เพื่อส่งกลับ
+        const gameSettingsPayload = buildGameSettingsPayload(effectiveSettings);
+        gameSettingsPayload.username = user.userid;
+        gameSettingsPayload.isPlayerSetting = true;
+
         const finalResponse = {
           "id": bodydata.id,
           "statusCode": 0,
           "timestampMillis": bodydata.timestampMillis,
           "productId": bodydata.productId,
           "currency": bodydata.currency,
-          "username": user.userid, // ใช้ userid ที่ถูกต้อง
+          "username": user.userid,
           "balance": mydata.data.balance,
-          "game_setting" : gameSettingsPayload // ใช้ Game Setting ที่ดึงมา
+          "game_setting" : gameSettingsPayload
         };
     
         return res.json(finalResponse);
 
-        // --- END: แก้ไขส่วนนี้ ---
-
     } catch (err) {
       console.log("Error occurred in checkBalance:", err);
-      // ควรมีการจัดการ Error ที่ดีกว่านี้ แต่ตอนนี้จะ return error กลับไปก่อน
        return res.status(500).json({ 
            id: bodydata.id, 
-           statusCode: 9999, // General Error
+           statusCode: 9999,
            message: "An internal error occurred"
         });
     }
@@ -223,10 +208,8 @@ router.post("/settleBets",async (req, res) => {
   var log = new Log(bodydata);
   console.log(user.apikey.name);
   console.log('body data is ', JSON.stringify(bodydata));
-  //log = bodydata;
   await log.save();
   if(!user){
-    //console.log('settleBets ERROR',user);
       const jsonResponse = {
           "id": bodydata.id,
           "statusCode": 30001,
@@ -251,8 +234,6 @@ router.post("/settleBets",async (req, res) => {
     },
     data : bodydata
   };
-
-
 
   var mydata = await axios.request(config)
 
@@ -281,10 +262,9 @@ router.post("/settleBets",async (req, res) => {
   };
   const doc = await Tranday.findOneAndUpdate(filter, update, {
     new: true,
-    upsert: true // Make this update into an upsert
+    upsert: true
   });
 
-   
   mydata.data.username = user.userid
   console.log('settleBets OK ',mydata.data);
   return res.json(mydata.data);  
@@ -292,14 +272,12 @@ router.post("/settleBets",async (req, res) => {
 
   } catch (err) {
     console.log("Error occurred:", err.data);
-    let retryAttempts = 4; // Number of retry attempts
-    let retryDelay = 1500; // Delay between retries in milliseconds
+    let retryAttempts = 4;
+    let retryDelay = 1500;
 
-    // Retry logic
     for (let attempt = 1; attempt <= retryAttempts; attempt++) {
         console.log(`Retrying attempt ${attempt}...`);
         try {
-            // Your existing code here
             var mydata = await axios.request(config);
             var tran = new Transaction();
             tran.id = bodydata.id;
@@ -319,34 +297,12 @@ router.post("/settleBets",async (req, res) => {
             console.log(`Retry attempt ${attempt} failed:`, retryErr);
             if (attempt === retryAttempts) {
                 console.log(`Maximum retry attempts (${retryAttempts}) reached.`);
-                // Handle maximum retry attempts reached
                 return res.status(500).json({ error: "Maximum retry attempts reached." });
             }
-            await new Promise(resolve => setTimeout(resolve, retryDelay)); // Delay before next retry
+            await new Promise(resolve => setTimeout(resolve, retryDelay));
         }
     }
-    
-
-    // console.log('settleBets ERROR ',err);
-    // const jsonResponse = {
-    //     "id": bodydata.id,
-    //     "statusCode": 9,
-    //     "timestampMillis":  bodydata.timestampMillis,
-    //     "productId": bodydata.productId,
-    //     "currency": bodydata.currency,
-    //     "balanceBefore": 0,
-    //     "balanceAfter": 0,
-    //     "username": "demo"
-    //   };
-    //   return res.json(jsonResponse);   
-
   }
-
-
-
-
-
-   
-
 })
+
 module.exports = router;

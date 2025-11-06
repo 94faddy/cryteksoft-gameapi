@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
-const { Api, Tranday, Transaction } = require('../_helpers/db');
+const { Api, Tranday, Transaction, User } = require('../_helpers/db');
 const fetch = require('node-fetch');
 
 // Middleware to check if user is authenticated
@@ -543,6 +543,113 @@ router.get('/api/user/player-detail/:username', isAuthenticated, async (req, res
     } catch (err) {
         console.error("Get Player Detail Error:", err);
         res.status(500).json({ success: false, message: 'เกิดข้อผิดพลาดในการดึงข้อมูล' });
+    }
+});
+
+// ===================================================================
+// ✅ API ใหม่สำหรับจัดการ User Game Settings (Per-User)
+// ===================================================================
+
+// GET /api/user/player-settings/:username - ดึง Settings ของ Player
+router.get('/api/user/player-settings/:username', isAuthenticated, async (req, res) => {
+    try {
+        const userId = new mongoose.Types.ObjectId(req.session.user.id);
+        const { username } = req.params;
+
+        // ค้นหา User ที่ตรงกับ username และ apikey
+        const player = await User.findOne({
+            username: username,
+            apikey: userId
+        }).lean();
+
+        if (!player) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'ไม่พบผู้เล่นนี้ในระบบ' 
+            });
+        }
+
+        // ถ้าใช้ settings ของ Agent
+        if (player.useAgentSettings) {
+            const agent = await Api.findById(userId).lean();
+            return res.json({
+                success: true,
+                useAgentSettings: true,
+                settings: agent.gameSettings || {}
+            });
+        }
+
+        // ถ้าใช้ custom settings
+        res.json({
+            success: true,
+            useAgentSettings: false,
+            settings: player.gameSettings || {}
+        });
+
+    } catch (err) {
+        console.error("Get Player Settings Error:", err);
+        res.status(500).json({ 
+            success: false, 
+            message: 'เกิดข้อผิดพลาดในการดึงข้อมูล' 
+        });
+    }
+});
+
+// POST /api/user/update-player-settings - อัพเดท Settings ของ Player
+router.post('/api/user/update-player-settings', isAuthenticated, async (req, res) => {
+    try {
+        const userId = new mongoose.Types.ObjectId(req.session.user.id);
+        const { username, useAgentSettings, ...settingsData } = req.body;
+
+        // ค้นหา User
+        const player = await User.findOne({
+            username: username,
+            apikey: userId
+        });
+
+        if (!player) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'ไม่พบผู้เล่นนี้ในระบบ' 
+            });
+        }
+
+        // อัพเดท useAgentSettings
+        player.useAgentSettings = useAgentSettings === true || useAgentSettings === 'true';
+
+        // ถ้าไม่ใช้ Agent Settings, อัพเดท custom settings
+        if (!player.useAgentSettings) {
+            const allowedKeys = [
+                'normal-spin', 'less-bet', 'less-bet-from', 'less-bet-to',
+                'more-bet', 'more-bet-from', 'more-bet-to', 'freespin-less-bet',
+                'freespin-less-bet-from', 'freespin-less-bet-to', 'freespin-more-bet',
+                'freespin-more-bet-from', 'freespin-more-bet-to', 'buy-feature-less-bet',
+                'buy-feature-less-bet-from', 'buy-feature-less-bet-to', 'buy-feature-more-bet',
+                'buy-feature-more-bet-from', 'buy-feature-more-bet-to'
+            ];
+
+            allowedKeys.forEach(key => {
+                if (settingsData[key] !== undefined) {
+                    player.gameSettings[key] = Number(settingsData[key]);
+                }
+            });
+
+            player.markModified('gameSettings');
+        }
+
+        await player.save();
+
+        res.json({ 
+            success: true, 
+            message: 'อัปเดตการตั้งค่าเกมสำเร็จ!' 
+        });
+
+    } catch (err) {
+        console.error("Update Player Settings Error:", err);
+        res.status(500).json({ 
+            success: false, 
+            message: 'เกิดข้อผิดพลาดในการบันทึกข้อมูล' 
+        });
     }
 });
 

@@ -4,7 +4,7 @@ const conn = mongoose.createConnection(process.env.MONGO_URI_TMP);
 
 mongoose.Query.prototype.options = { allowDiskUse: true };
 
-// โครงสร้างของ Game Settings ที่จะถูกใช้ใน ApiSchema
+// โครงสร้างของ Game Settings ที่จะถูกใช้ใน ApiSchema และ UserSchema
 const gameSettingSchemaStructure = {
     'normal-spin': { type: Number, default: 85 },
     'less-bet': { type: Number, default: 35 },
@@ -26,7 +26,6 @@ const gameSettingSchemaStructure = {
     'buy-feature-more-bet-from': { type: Number, default: 50 },
     'buy-feature-more-bet-to': { type: Number, default: 60 }
 };
-// END: โค้ดที่เพิ่มเข้ามา
 
 const apiSchema = new mongoose.Schema({
     name: { type: String , required: true },
@@ -58,25 +57,22 @@ const logSchema = new mongoose.Schema({
     txns : { type: Object, required: true },
     apikey: { type: mongoose.Schema.Types.ObjectId, ref: 'Api'  },
     createdDate: { type: Date, default: Date.now }
-   // callback: { type: String, required: true }
 });
 
 const Log = conn.model('Log', logSchema);
 
 const TransactionSchema = new mongoose.Schema({
     id: { type: String , unique: true, required: true },
-    statusCode : { type: Number, required: true, index: true }, // เพิ่ม index
+    statusCode : { type: Number, required: true, index: true },
     wallet_amount_before : { type: Number, required: true },
     wallet_amount_after : { type: Number, required: true},
     betAmount : { type: Number , required: true },
     payoutAmount : { type: Number , required: true },
     data : { type: Object },    
-    apikey: { type: mongoose.Schema.Types.ObjectId, ref: 'Api', index: true }, // เพิ่ม index
-    createdDate: { type: Date, default: Date.now, index: true } // เพิ่ม index
-   // callback: { type: String, required: true }
+    apikey: { type: mongoose.Schema.Types.ObjectId, ref: 'Api', index: true },
+    createdDate: { type: Date, default: Date.now, index: true }
 });
 
-// สร้าง Compound Index เพื่อประสิทธิภาพสูงสุดในการค้นหาและเรียงลำดับพร้อมกัน
 TransactionSchema.index({ apikey: 1, statusCode: 1, createdDate: -1 });
 
 const Transaction = conn.model('Transaction', TransactionSchema);
@@ -87,18 +83,20 @@ const TrandaySchema = new mongoose.Schema({
     apikey: { type: mongoose.Schema.Types.ObjectId, ref: 'Api'  },
     username: { type: String},
     data : { type: String }
-   // callback: { type: String, required: true }
 });
 
 const Tranday = conn.model('Tranday', TrandaySchema);
 
+// ✅ อัพเดท User Schema - เพิ่ม gameSettings และ useAgentSettings
 const userSchema = new mongoose.Schema({
     userid: { type: String , required: true },
     username: { type: String , required: true },
     apikey: { type: mongoose.Schema.Types.ObjectId, ref: 'Api'  },
     token: { type: String , required: true },
     data : { type: Object },    
-    secret_key: { type: String  }
+    secret_key: { type: String },
+    useAgentSettings: { type: Boolean, default: true }, // true = ใช้ของ Agent, false = ใช้ของตัวเอง
+    gameSettings: { type: gameSettingSchemaStructure, default: () => ({}) } // Settings เฉพาะของ User
 });
 
 const User = conn.model('User', userSchema);
