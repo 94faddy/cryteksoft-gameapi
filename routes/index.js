@@ -26,11 +26,7 @@ const getGameImagesMap = async () => {
         results.forEach(providerGames => {
             if (providerGames && Array.isArray(providerGames.games)) {
                 providerGames.games.forEach(game => {
-                    // --- START: แก้ไขตรงนี้ ---
-                    // ถ้าเป็นค่าย JILI ให้ใช้ game_code เป็น key แต่ถ้าค่ายอื่นใช้ game_id
                     const key = game.provider === 'JILI' ? String(game.game_code) : String(game.game_id);
-                    // --- END: แก้ไขตรงนี้ ---
-
                     gameMap.set(key, {
                         imageUrl: game.image_url,
                         gameName: game.game_name
@@ -44,7 +40,7 @@ const getGameImagesMap = async () => {
     return gameMap;
 };
 
-// --- Routes แสดงผลหน้าเว็บ (ส่วนนี้ถูกต้องแล้ว ไม่ต้องแก้ไข) ---
+// --- Routes แสดงผลหน้าเว็บ ---
 router.get('/', (req, res) => {
     if (req.session.user) {
         res.redirect('/dashboard');
@@ -62,12 +58,16 @@ router.get('/dashboard', isAuthenticated, async (req, res) => {
     res.render('dashboard', { user: user });
 });
 
-// --- START: เพิ่ม Route สำหรับหน้ารายงาน ---
 router.get('/report', isAuthenticated, async (req, res) => {
     const user = await Api.findById(req.session.user.id).lean();
     res.render('report', { user: user, title: 'รายงาน' });
 });
-// --- END: เพิ่ม Route สำหรับหน้ารายงาน ---
+
+// === เพิ่มหน้าใหม่: User History (ประวัติผู้เล่นแบบละเอียด) ===
+router.get('/user-history', isAuthenticated, async (req, res) => {
+    const user = await Api.findById(req.session.user.id).lean();
+    res.render('user_history', { user: user, title: 'ประวัติผู้เล่น' });
+});
 
 router.get('/change-password', isAuthenticated, async (req, res) => {
     const user = await Api.findById(req.session.user.id).lean();
@@ -89,23 +89,19 @@ router.get('/manage-2fa', isAuthenticated, async (req, res) => {
     res.render('manage_2fa', { user: user, title: 'จัดการ 2FA' });
 });
 
-// --- START: แก้ไข API ให้ตรงกับการทำงานของ Frontend ---
+// --- API Endpoints ---
 
-// **แก้ไข:** API สำหรับดึงยอดรวม (ที่ /api/user/totals เรียกใช้)
 router.get('/api/user/totals', isAuthenticated, async (req, res) => {
     try {
         const userId = new mongoose.Types.ObjectId(req.session.user.id);
         let matchCondition = { apikey: userId };
 
-        // --- START: แก้ไขส่วนนี้ ---
-        // ตรวจสอบว่ามีการส่งช่วงวันที่มาหรือไม่ (สำหรับการค้นหาในหน้า Report)
         if (req.query.start && req.query.end) {
             const [month1, day1, year1] = req.query.start.split('/');
             const [month2, day2, year2] = req.query.end.split('/');
             const startDate = new Date(`${year1}-${month1}-${day1}`);
             const endDate = new Date(new Date(`${year2}-${month2}-${day2}`).setHours(23, 59, 59, 999));
             
-            // ใช้ $addFields เพื่อแปลง String เป็น Date และกรองข้อมูล
             const dateFilterPipeline = [
                 {
                     $addFields: {
@@ -125,7 +121,6 @@ router.get('/api/user/totals', isAuthenticated, async (req, res) => {
             return res.json(result);
             
         } else {
-            // ถ้าไม่มีการส่งช่วงวันที่มา (เรียกจาก Dashboard) ให้ดึงยอด "เฉพาะเดือนปัจจุบัน"
             const now = new Date();
             const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
             const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
@@ -153,7 +148,6 @@ router.get('/api/user/totals', isAuthenticated, async (req, res) => {
             const result = { totals: userTotals.length > 0 ? userTotals[0] : { total_bet: 0, total_win: 0 } };
             return res.json(result);
         }
-        // --- END: แก้ไขส่วนนี้ ---
 
     } catch (error) {
         console.error('Error fetching user totals:', error);
@@ -161,8 +155,6 @@ router.get('/api/user/totals', isAuthenticated, async (req, res) => {
     }
 });
 
-
-// **แก้ไข:** API สำหรับดึงประวัติ (ที่ /api/user/history เรียกใช้)
 router.get('/api/user/history', isAuthenticated, async (req, res) => {
     try {
         const userId = new mongoose.Types.ObjectId(req.session.user.id);
@@ -171,7 +163,6 @@ router.get('/api/user/history', isAuthenticated, async (req, res) => {
             statusCode: 0
         };
 
-        // ตรวจสอบว่ามีการส่งช่วงวันที่มาหรือไม่
         if (req.query.start && req.query.end) {
             const [month1, day1, year1] = req.query.start.split('/');
             const [month2, day2, year2] = req.query.end.split('/');
@@ -194,7 +185,6 @@ router.get('/api/user/history', isAuthenticated, async (req, res) => {
     }
 });
 
-// API สำหรับเปลี่ยนรหัสผ่าน (ถูกต้องแล้ว)
 router.post('/auth/change-password', isAuthenticated, async (req, res) => {
     try {
         const { currentPassword, newPassword, confirmPassword } = req.body;
@@ -215,9 +205,6 @@ router.post('/auth/change-password', isAuthenticated, async (req, res) => {
     }
 });
 
-
-// --- START: เพิ่ม Route ที่ขาดหายไป ---
-// API อัปเดตข้อมูล API (IP, Callback)
 router.post('/api/user/update-api-info', isAuthenticated, async (req, res) => {
     try {
         const { ip, callback, currentPassword } = req.body;
@@ -232,7 +219,6 @@ router.post('/api/user/update-api-info', isAuthenticated, async (req, res) => {
             return res.status(400).json({ success: false, message: 'รหัสผ่านปัจจุบันไม่ถูกต้อง' });
         }
 
-        // อัปเดตข้อมูลและบันทึก
         user.ip = ip;
         user.callback = callback;
         await user.save();
@@ -248,14 +234,9 @@ router.get('/game-settings', isAuthenticated, async (req, res) => {
     try {
         const user = await Api.findById(req.session.user.id).lean();
 
-        // --- START: แก้ไขส่วนนี้เพื่อแก้ Error ---
-        // ตรวจสอบว่า user.gameSettings มีอยู่หรือไม่ หรือเป็น object ว่าง
-        // และเปลี่ยนจากการเรียก mongoose.model('Api') มาใช้ตัวแปร Api ที่ import มาแล้ว
         if (!user.gameSettings || Object.keys(user.gameSettings).length === 0) {
-            // หากไม่มี ให้ใช้ค่า default จาก schema ของโมเดล Api
             user.gameSettings = Api.schema.path('gameSettings').defaultValue();
         }
-        // --- END: แก้ไขส่วนนี้ ---
 
         res.render('game_settings', { user: user, title: 'ตั้งค่าเกม' });
     } catch (error) {
@@ -264,7 +245,6 @@ router.get('/game-settings', isAuthenticated, async (req, res) => {
     }
 });
 
-// หมายเหตุ: โค้ดส่วนนี้ถูกต้องอยู่แล้ว ไม่จำเป็นต้องแก้ไข
 router.post('/api/user/update-game-settings', isAuthenticated, async (req, res) => {
     try {
         const user = await Api.findById(req.session.user.id);
@@ -273,14 +253,13 @@ router.post('/api/user/update-game-settings', isAuthenticated, async (req, res) 
         }
 
         const settingsData = req.body;
-        // ลูปเพื่ออัปเดตค่าและแปลงเป็นตัวเลข
         for (const key in user.gameSettings) {
             if (Object.hasOwnProperty.call(settingsData, key)) {
                 user.gameSettings[key] = Number(settingsData[key]);
             }
         }
         
-        user.markModified('gameSettings'); // แจ้ง Mongoose ว่ามีการแก้ไข object ซ้อน object
+        user.markModified('gameSettings');
         await user.save();
 
         res.json({ success: true, message: 'อัปเดตการตั้งค่าเกมสำเร็จ!' });
@@ -293,51 +272,43 @@ router.post('/api/user/update-game-settings', isAuthenticated, async (req, res) 
 router.get('/api/user/monthly-summary', isAuthenticated, async (req, res) => {
     try {
         const userId = new mongoose.Types.ObjectId(req.session.user.id);
-
-        // คำนวณวันที่เริ่มต้น (3 เดือนก่อนหน้าเดือนปัจจุบัน)
         const now = new Date();
         const startDate = new Date(now.getFullYear(), now.getMonth() - 3, 1);
 
         const monthlyData = await Tranday.aggregate([
             {
-                // แปลงฟิลด์ 'data' (String: "MM/DD/YYYY") ให้เป็น Date Object
                 $addFields: {
                     reportDate: { $dateFromString: { dateString: '$data', format: '%m/%d/%Y' } }
                 }
             },
             {
-                // คัดกรองข้อมูลเฉพาะของ User ที่ login และอยู่ในช่วง 4 เดือนล่าสุด
                 $match: {
                     apikey: userId,
                     reportDate: { $gte: startDate }
                 }
             },
             {
-                // จัดกลุ่มข้อมูลตามปีและเดือน
                 $group: {
                     _id: {
                         year: { $year: '$reportDate' },
                         month: { $month: '$reportDate' }
                     },
                     totalBet: { $sum: '$betAmount' },
-                    totalWin: { $sum: '$payoutAmount' } // ยอดที่จ่ายให้ผู้เล่น
+                    totalWin: { $sum: '$payoutAmount' }
                 }
             },
             {
-                // จัดเรียงข้อมูลตามปีและเดือนจากเก่าไปใหม่
                 $sort: {
                     '_id.year': 1,
                     '_id.month': 1
                 }
             },
             {
-                 // จัดรูปแบบผลลัพธ์ใหม่
                 $project: {
                     _id: 0,
                     month: { $concat: [ { $toString: "$_id.year" }, "-", { $toString: "$_id.month" } ] },
                     totalBet: "$totalBet",
                     totalWin: "$totalWin",
-                    // ยอดได้/เสียของ Agent (Bet - Payout)
                     profit: { $subtract: ["$totalBet", "$totalWin"] }
                 }
             }
@@ -351,7 +322,6 @@ router.get('/api/user/monthly-summary', isAuthenticated, async (req, res) => {
     }
 });
 
-
 router.get('/api/user/report', isAuthenticated, async (req, res) => {
     try {
         const userId = new mongoose.Types.ObjectId(req.session.user.id);
@@ -360,9 +330,7 @@ router.get('/api/user/report', isAuthenticated, async (req, res) => {
         let totalsData;
         let transactions;
 
-        // ตรวจสอบว่ามีการส่งช่วงวันที่มาหรือไม่
         if (req.query.start && req.query.end) {
-            // กรณีมีการเลือกวันที่: คำนวณยอดรวมจาก Transaction ในช่วงนั้นๆ
             const [month1, day1, year1] = req.query.start.split('/');
             const [month2, day2, year2] = req.query.end.split('/');
             const startDate = new Date(`${year1}-${month1}-${day1}T00:00:00.000Z`);
@@ -383,7 +351,6 @@ router.get('/api/user/report', isAuthenticated, async (req, res) => {
             }, { total_bet: 0, total_win: 0 });
 
         } else {
-            // กรณีไม่เลือกวันที่ (โหลดครั้งแรก): ดึงยอดรวมทั้งหมดจาก Tranday เพื่อให้ตรงกับ Dashboard
             const overallTotals = await Tranday.aggregate([
                 { $match: { apikey: userId } },
                 {
@@ -397,16 +364,13 @@ router.get('/api/user/report', isAuthenticated, async (req, res) => {
             
             totalsData = overallTotals.length > 0 ? overallTotals[0] : { total_bet: 0, total_win: 0 };
             
-            // และดึงรายการ Transaction ทั้งหมดสำหรับแสดงในตาราง
             transactions = await Transaction.find({ apikey: userId, statusCode: 0 })
                 .sort({ createdDate: -1 })
                 .lean();
         }
 
-        // คำนวณ User Loss (Win - Bet) ให้เหมือน Dashboard
         const total_loss = totalsData.total_win - totalsData.total_bet;
 
-        // จัดรูปแบบข้อมูลสำหรับตาราง
         const history = transactions.map(tx => {
             const gameInfo = gameImagesMap.get(String(tx.data.gameId)) || { imageUrl: '/img/default-game.png', gameName: tx.data.gameId };
             return {
@@ -424,7 +388,6 @@ router.get('/api/user/report', isAuthenticated, async (req, res) => {
             };
         });
 
-        // ส่งข้อมูลทั้งหมดกลับไป
         res.json({
             history,
             totals: {
@@ -437,6 +400,136 @@ router.get('/api/user/report', isAuthenticated, async (req, res) => {
     } catch (error) {
         console.error('Error fetching user report:', error);
         res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+// ===================================================================
+// === API ใหม่สำหรับ User History (ประวัติผู้เล่นแบบละเอียด) ===
+// ===================================================================
+
+// GET /api/user/all-players - ดึงรายชื่อ Username ทั้งหมดของ Agent
+router.get('/api/user/all-players', isAuthenticated, async (req, res) => {
+    try {
+        const userId = new mongoose.Types.ObjectId(req.session.user.id);
+        const { start, end } = req.query;
+        
+        let matchCondition = { 
+            apikey: userId,
+            statusCode: 0 
+        };
+        
+        // กรองตามวันที่ถ้ามีการเลือก
+        if (start && end) {
+            const [month1, day1, year1] = start.split('/');
+            const [month2, day2, year2] = end.split('/');
+            const startDate = new Date(`${year1}-${month1}-${day1}T00:00:00.000Z`);
+            const endDate = new Date(`${year2}-${month2}-${day2}T23:59:59.999Z`);
+            matchCondition.createdDate = { $gte: startDate, $lte: endDate };
+        }
+
+        const players = await Transaction.aggregate([
+            { $match: matchCondition },
+            {
+                $group: {
+                    _id: '$data.username',
+                    totalBet: { $sum: '$betAmount' },
+                    totalWin: { $sum: '$payoutAmount' },
+                    totalGames: { $sum: 1 },
+                    lastPlayed: { $max: '$createdDate' }
+                }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    username: '$_id',
+                    totalBet: 1,
+                    totalWin: 1,
+                    totalGames: 1,
+                    winLoss: { $subtract: ['$totalWin', '$totalBet'] },
+                    lastPlayed: 1
+                }
+            },
+            { $sort: { totalBet: -1 } }
+        ]);
+
+        res.json({ success: true, players });
+
+    } catch (err) {
+        console.error("Get All Players Error:", err);
+        res.status(500).json({ success: false, message: 'เกิดข้อผิดพลาดในการดึงข้อมูล' });
+    }
+});
+
+// GET /api/user/player-detail/:username - ดึงประวัติการเล่นของ Username
+router.get('/api/user/player-detail/:username', isAuthenticated, async (req, res) => {
+    try {
+        const userId = new mongoose.Types.ObjectId(req.session.user.id);
+        const { username } = req.params;
+        const { start, end, startTime, endTime } = req.query;
+
+        let matchCondition = {
+            apikey: userId,
+            'data.username': username,
+            statusCode: 0
+        };
+
+        // กรองตามวันที่และเวลา
+        if (start && end) {
+            const [month1, day1, year1] = start.split('/');
+            const [month2, day2, year2] = end.split('/');
+            
+            let startDate = new Date(`${year1}-${month1}-${day1}T00:00:00.000Z`);
+            let endDate = new Date(`${year2}-${month2}-${day2}T23:59:59.999Z`);
+
+            // ถ้ามีการระบุเวลา
+            if (startTime) {
+                const [startHour, startMinute] = startTime.split(':');
+                startDate = new Date(`${year1}-${month1}-${day1}T${startHour}:${startMinute}:00.000Z`);
+            }
+            
+            if (endTime) {
+                const [endHour, endMinute] = endTime.split(':');
+                endDate = new Date(`${year2}-${month2}-${day2}T${endHour}:${endMinute}:59.999Z`);
+            }
+
+            matchCondition.createdDate = { $gte: startDate, $lte: endDate };
+        }
+
+        const transactions = await Transaction.find(matchCondition)
+            .sort({ createdDate: -1 })
+            .limit(1000)
+            .lean();
+
+        // คำนวณสถิติรวม
+        const summary = transactions.reduce((acc, tx) => {
+            acc.totalBet += tx.betAmount;
+            acc.totalWin += tx.payoutAmount;
+            acc.totalGames += 1;
+            return acc;
+        }, { totalBet: 0, totalWin: 0, totalGames: 0 });
+
+        summary.winLoss = summary.totalWin - summary.totalBet;
+
+        const history = transactions.map(tx => ({
+            transactionId: tx.id,
+            gameId: tx.data.gameId,
+            productId: tx.data.productId,
+            betAmount: tx.betAmount,
+            payoutAmount: tx.payoutAmount,
+            winLoss: tx.payoutAmount - tx.betAmount,
+            currency: tx.data.currency || 'N/A',
+            createdDate: tx.createdDate
+        }));
+
+        res.json({ 
+            success: true, 
+            summary,
+            history 
+        });
+
+    } catch (err) {
+        console.error("Get Player Detail Error:", err);
+        res.status(500).json({ success: false, message: 'เกิดข้อผิดพลาดในการดึงข้อมูล' });
     }
 });
 

@@ -1,0 +1,439 @@
+<%- include('partials/header') %>
+
+<div class="container-fluid">
+    <h3 class="mb-4 text-white"><i class="fa-solid fa-users me-2"></i><%= title %></h3>
+
+    <!-- ฟิลเตอร์ -->
+    <div class="card bg-dark text-light mb-4">
+        <div class="card-header bg-secondary bg-opacity-25 border-secondary">
+            <i class="fa-solid fa-filter me-2"></i>ตัวกรองข้อมูล
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">จากวันที่</label>
+                    <input type="text" id="filterStartDate" class="form-control bg-dark text-light" placeholder="MM/DD/YYYY" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">ถึงวันที่</label>
+                    <input type="text" id="filterEndDate" class="form-control bg-dark text-light" placeholder="MM/DD/YYYY" />
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <button id="btnSearch" class="btn btn-primary w-100">
+                        <i class="fa-solid fa-search me-1"></i>ค้นหา
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ค้นหา Username -->
+    <div class="card bg-dark text-light mb-4">
+        <div class="card-header bg-secondary bg-opacity-25 border-secondary">
+            <i class="fa-solid fa-search me-2"></i> ค้นหา Username
+        </div>
+        <div class="card-body">
+            <input type="text" id="usernameSearchInput" class="form-control bg-dark text-light" placeholder="พิมพ์ Username เพื่อค้นหา...">
+        </div>
+    </div>
+
+    <!-- สถิติรวม -->
+    <div class="card bg-dark text-light mb-4">
+        <div class="card-body">
+            <h5 class="card-title">สถิติรวม (<span id="stats-display-title">ทั้งหมด</span>)</h5>
+            <div class="row text-center">
+                <div class="col-md-3">
+                    <div class="card bg-info text-white p-3">
+                        <h6 class="mb-0">จำนวน Username</h6>
+                        <h4 id="total-usernames">0</h4>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-primary text-white p-3">
+                        <h6 class="mb-0">Total Bet</h6>
+                        <h4 id="total-bet">0.00</h4>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-success text-white p-3">
+                        <h6 class="mb-0">Total Win</h6>
+                        <h4 id="total-win">0.00</h4>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-danger text-white p-3">
+                        <h6 class="mb-0">Win/Loss</h6>
+                        <h4 id="total-winloss">0.00</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ตารางแสดง Username -->
+    <div class="card bg-dark text-light">
+        <div class="card-header bg-secondary bg-opacity-25 border-secondary">
+            <i class="fa-solid fa-table me-2"></i>รายชื่อ Username ทั้งหมด
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-dark table-striped table-hover" id="usernamesTable">
+                    <thead>
+                        <tr>
+                            <th>Username</th>
+                            <th>Total Bet</th>
+                            <th>Total Win</th>
+                            <th>Win/Loss</th>
+                            <th>จำนวนเกม</th>
+                            <th>เล่นล่าสุด</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usernamesTableBody">
+                        <tr>
+                            <td colspan="7" class="text-center">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p class="mt-2">กำลังโหลดข้อมูล...</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal แสดงประวัติ -->
+<div class="modal fade" id="historyModal" tabindex="-1" aria-labelledby="historyModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content bg-dark text-light">
+            <div class="modal-header bg-primary text-white border-secondary">
+                <h5 class="modal-title" id="historyModalLabel">
+                    <i class="fa-solid fa-clock-rotate-left me-2"></i>ประวัติการเล่นของ: <span id="modal-username" class="fw-bold"></span>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- ฟิลเตอร์วันที่และเวลา -->
+                <div class="card bg-secondary mb-3">
+                    <div class="card-header">
+                        <i class="fa-solid fa-filter me-2"></i>กรองข้อมูล
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-2">
+                                <label class="form-label">จากวันที่</label>
+                                <input type="text" id="modalStartDate" class="form-control bg-dark text-light" placeholder="MM/DD/YYYY" />
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">เวลา</label>
+                                <input type="time" id="modalStartTime" class="form-control bg-dark text-light" />
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">ถึงวันที่</label>
+                                <input type="text" id="modalEndDate" class="form-control bg-dark text-light" placeholder="MM/DD/YYYY" />
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">เวลา</label>
+                                <input type="time" id="modalEndTime" class="form-control bg-dark text-light" />
+                            </div>
+                            <div class="col-md-2 d-flex align-items-end">
+                                <button id="btnModalSearch" class="btn btn-primary w-100">
+                                    <i class="fa-solid fa-search me-1"></i>ค้นหา
+                                </button>
+                            </div>
+                            <div class="col-md-2 d-flex align-items-end">
+                                <button id="btnModalReset" class="btn btn-secondary w-100">
+                                    <i class="fa-solid fa-rotate-right me-1"></i>รีเซ็ต
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- สถิติย่อย -->
+                <div class="card bg-secondary mb-3">
+                    <div class="card-body">
+                        <div class="row text-center">
+                            <div class="col-md-3">
+                                <strong>Total Bet:</strong>
+                                <h5 id="modal-total-bet" class="text-primary">0.00</h5>
+                            </div>
+                            <div class="col-md-3">
+                                <strong>Total Win:</strong>
+                                <h5 id="modal-total-win" class="text-success">0.00</h5>
+                            </div>
+                            <div class="col-md-3">
+                                <strong>Win/Loss:</strong>
+                                <h5 id="modal-win-loss" class="text-danger">0.00</h5>
+                            </div>
+                            <div class="col-md-3">
+                                <strong>จำนวนเกม:</strong>
+                                <h5 id="modal-total-games" class="text-info">0</h5>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ตารางประวัติ -->
+                <div class="table-responsive">
+                    <table class="table table-sm table-dark table-bordered table-hover" id="historyTable">
+                        <thead class="table-light">
+                            <tr>
+                                <th>วันที่/เวลา</th>
+                                <th>Game ID</th>
+                                <th>Provider</th>
+                                <th>Bet</th>
+                                <th>Win</th>
+                                <th>Win/Loss</th>
+                                <th>Currency</th>
+                                <th>Transaction ID</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyTableBody">
+                            <tr>
+                                <td colspan="8" class="text-center">
+                                    <div class="spinner-border text-primary" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ปิด</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const usernamesTableBody = document.getElementById('usernamesTableBody');
+    const usernameSearchInput = document.getElementById('usernameSearchInput');
+    const filterStartDate = document.getElementById('filterStartDate');
+    const filterEndDate = document.getElementById('filterEndDate');
+    const btnSearch = document.getElementById('btnSearch');
+    
+    const historyModal = new bootstrap.Modal(document.getElementById('historyModal'));
+    const modalUsername = document.getElementById('modal-username');
+    const historyTableBody = document.getElementById('historyTableBody');
+    const modalStartDate = document.getElementById('modalStartDate');
+    const modalEndDate = document.getElementById('modalEndDate');
+    const modalStartTime = document.getElementById('modalStartTime');
+    const modalEndTime = document.getElementById('modalEndTime');
+    const btnModalSearch = document.getElementById('btnModalSearch');
+    const btnModalReset = document.getElementById('btnModalReset');
+
+    let currentUsername = '';
+    let allPlayers = [];
+
+    // เริ่มต้น Datepicker
+    const startDatePicker = $(filterStartDate).datepicker({ uiLibrary: 'bootstrap5', format: 'mm/dd/yyyy' });
+    const endDatePicker = $(filterEndDate).datepicker({ uiLibrary: 'bootstrap5', format: 'mm/dd/yyyy' });
+    const modalStartDatePicker = $(modalStartDate).datepicker({ uiLibrary: 'bootstrap5', format: 'mm/dd/yyyy' });
+    const modalEndDatePicker = $(modalEndDate).datepicker({ uiLibrary: 'bootstrap5', format: 'mm/dd/yyyy' });
+
+    // โหลดรายชื่อ Players
+    async function loadPlayers(start = '', end = '') {
+        usernamesTableBody.innerHTML = '<tr><td colspan="7" class="text-center"><div class="spinner-border text-primary" role="status"></div><p class="mt-2">กำลังโหลดข้อมูล...</p></td></tr>';
+        
+        try {
+            let url = '/api/user/all-players';
+            if (start && end) {
+                url += `?start=${start}&end=${end}`;
+            }
+
+            const response = await fetch(url);
+            const result = await response.json();
+
+            if (result.success) {
+                allPlayers = result.players;
+                displayPlayers(allPlayers);
+                updateStats(allPlayers);
+            } else {
+                throw new Error(result.message);
+            }
+        } catch (error) {
+            console.error('Error loading players:', error);
+            usernamesTableBody.innerHTML = '<tr><td colspan="7" class="text-center text-danger">เกิดข้อผิดพลาด: ' + error.message + '</td></tr>';
+        }
+    }
+
+    // แสดง Players ในตาราง
+    function displayPlayers(players) {
+        if (players.length === 0) {
+            usernamesTableBody.innerHTML = '<tr><td colspan="7" class="text-center">ไม่พบข้อมูล</td></tr>';
+            return;
+        }
+
+        usernamesTableBody.innerHTML = players.map(player => {
+            const winLossClass = player.winLoss >= 0 ? 'text-success' : 'text-danger';
+            const lastPlayed = new Date(player.lastPlayed).toLocaleString('th-TH');
+            
+            return `
+                <tr>
+                    <td><strong>${player.username}</strong></td>
+                    <td>${player.totalBet.toFixed(2)}</td>
+                    <td>${player.totalWin.toFixed(2)}</td>
+                    <td class="${winLossClass}">${player.winLoss.toFixed(2)}</td>
+                    <td>${player.totalGames}</td>
+                    <td><small>${lastPlayed}</small></td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary view-history-btn" data-username="${player.username}">
+                            <i class="fa-solid fa-clock-rotate-left me-1"></i>ดูประวัติ
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+
+        // ผูก Event ให้กับปุ่มดูประวัติ
+        document.querySelectorAll('.view-history-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                currentUsername = this.getAttribute('data-username');
+                loadPlayerHistory(currentUsername);
+            });
+        });
+    }
+
+    // อัปเดตสถิติรวม
+    function updateStats(players) {
+        const stats = players.reduce((acc, player) => {
+            acc.totalBet += player.totalBet;
+            acc.totalWin += player.totalWin;
+            acc.totalWinLoss += player.winLoss;
+            return acc;
+        }, { totalBet: 0, totalWin: 0, totalWinLoss: 0 });
+
+        document.getElementById('total-usernames').textContent = players.length;
+        document.getElementById('total-bet').textContent = stats.totalBet.toFixed(2);
+        document.getElementById('total-win').textContent = stats.totalWin.toFixed(2);
+        document.getElementById('total-winloss').textContent = stats.totalWinLoss.toFixed(2);
+    }
+
+    // ค้นหา Username
+    usernameSearchInput.addEventListener('keyup', function() {
+        const filter = this.value.toLowerCase();
+        const rows = usernamesTableBody.getElementsByTagName('tr');
+
+        for (let row of rows) {
+            const textContent = row.textContent || row.innerText;
+            if (textContent.toLowerCase().indexOf(filter) > -1) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        }
+    });
+
+    // ปุ่มค้นหา
+    btnSearch.addEventListener('click', function() {
+        const start = startDatePicker.value();
+        const end = endDatePicker.value();
+
+        if (start && !end || !start && end) {
+            Swal.fire('ข้อมูลไม่ครบ', 'กรุณาเลือกทั้งวันที่เริ่มต้นและวันที่สิ้นสุด', 'warning');
+            return;
+        }
+
+        loadPlayers(start, end);
+    });
+
+    // โหลดประวัติ Player
+    async function loadPlayerHistory(username, start = '', end = '', startTime = '', endTime = '') {
+        modalUsername.textContent = username;
+        historyTableBody.innerHTML = '<tr><td colspan="8" class="text-center"><div class="spinner-border text-primary" role="status"></div></td></tr>';
+        historyModal.show();
+
+        try {
+            let url = `/api/user/player-detail/${username}`;
+            const params = [];
+            if (start) params.push(`start=${start}`);
+            if (end) params.push(`end=${end}`);
+            if (startTime) params.push(`startTime=${startTime}`);
+            if (endTime) params.push(`endTime=${endTime}`);
+            if (params.length > 0) {
+                url += '?' + params.join('&');
+            }
+
+            const response = await fetch(url);
+            const result = await response.json();
+
+            if (result.success) {
+                displayPlayerHistory(result.history, result.summary);
+            } else {
+                throw new Error(result.message);
+            }
+        } catch (error) {
+            console.error('Error loading player history:', error);
+            historyTableBody.innerHTML = '<tr><td colspan="8" class="text-center text-danger">เกิดข้อผิดพลาด: ' + error.message + '</td></tr>';
+        }
+    }
+
+    // แสดงประวัติในตาราง
+    function displayPlayerHistory(history, summary) {
+        // อัปเดตสถิติ
+        document.getElementById('modal-total-bet').textContent = summary.totalBet.toFixed(2);
+        document.getElementById('modal-total-win').textContent = summary.totalWin.toFixed(2);
+        document.getElementById('modal-win-loss').textContent = summary.winLoss.toFixed(2);
+        document.getElementById('modal-total-games').textContent = summary.totalGames;
+
+        if (history.length === 0) {
+            historyTableBody.innerHTML = '<tr><td colspan="8" class="text-center">ไม่พบข้อมูล</td></tr>';
+            return;
+        }
+
+        historyTableBody.innerHTML = history.map(tx => {
+            const winLossClass = tx.winLoss >= 0 ? 'text-success' : 'text-danger';
+            const createdDate = new Date(tx.createdDate).toLocaleString('th-TH');
+            
+            return `
+                <tr>
+                    <td><small>${createdDate}</small></td>
+                    <td>${tx.gameId}</td>
+                    <td>${tx.productId}</td>
+                    <td>${tx.betAmount.toFixed(2)}</td>
+                    <td>${tx.payoutAmount.toFixed(2)}</td>
+                    <td class="${winLossClass}">${tx.winLoss.toFixed(2)}</td>
+                    <td>${tx.currency}</td>
+                    <td><small>${tx.transactionId}</small></td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    // ปุ่มค้นหาใน Modal
+    btnModalSearch.addEventListener('click', function() {
+        const start = modalStartDatePicker.value();
+        const end = modalEndDatePicker.value();
+        const startTime = modalStartTime.value;
+        const endTime = modalEndTime.value;
+
+        if (start && !end || !start && end) {
+            Swal.fire('ข้อมูลไม่ครบ', 'กรุณาเลือกทั้งวันที่เริ่มต้นและวันที่สิ้นสุด', 'warning');
+            return;
+        }
+
+        loadPlayerHistory(currentUsername, start, end, startTime, endTime);
+    });
+
+    // ปุ่มรีเซ็ตใน Modal
+    btnModalReset.addEventListener('click', function() {
+        modalStartDatePicker.value('');
+        modalEndDatePicker.value('');
+        modalStartTime.value = '';
+        modalEndTime.value = '';
+        loadPlayerHistory(currentUsername);
+    });
+
+    // โหลดข้อมูลเริ่มต้น
+    loadPlayers();
+});
+</script>
+
+<%- include('partials/footer') %>
