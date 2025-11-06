@@ -65,7 +65,8 @@
   <div class="offcanvas-body">
     <ul class="nav flex-column">
       <li class="nav-item"><a class="nav-link <%= title === 'Dashboard' ? 'active' : '' %>" href="/admin/dashboard"><i class="bi bi-speedometer2 me-2"></i>Dashboard</a></li>
-      <li class="nav-item"><a class="nav-link <%= title === 'จัดการผู้ใช้งาน' ? 'active' : '' %>" href="/admin/manage-users"><i class="bi bi-people-fill me-2"></i>จัดการผู้ใช้งาน</a></li>
+      <li class="nav-item"><a class="nav-link <%= title === 'จัดการผู้ใช้งาน' ? 'active' : '' %>" href="/admin/manage-users"><i class="bi bi-people-fill me-2"></i>จัดการผู้ใช้งาน (Agent)</a></li>
+      <li class="nav-item"><a class="nav-link <%= title === 'จัดการ Username (ผู้เล่น)' ? 'active' : '' %>" href="/admin/manage-usernames"><i class="bi bi-person-circle me-2"></i>จัดการ Username (ผู้เล่น)</a></li>
       <li class="nav-item"><a class="nav-link <%= title === 'สร้าง API Key' ? 'active' : '' %>" href="/admin/generate-api"><i class="bi bi-key-fill me-2"></i>สร้าง API Key</a></li>
       <hr>
       <li class="nav-item"><a href="/admin/logout" class="btn btn-outline-danger w-100">ออกจากระบบ</a></li>
@@ -78,7 +79,8 @@
     <h4 class="px-3">Admin Panel</h4>
     <ul class="nav flex-column">
       <li class="nav-item"><a class="nav-link <%= title === 'Dashboard' ? 'active' : '' %>" href="/admin/dashboard"><i class="bi bi-speedometer2 me-2"></i>Dashboard</a></li>
-      <li class="nav-item"><a class="nav-link <%= title === 'จัดการผู้ใช้งาน' ? 'active' : '' %>" href="/admin/manage-users"><i class="bi bi-people-fill me-2"></i>จัดการผู้ใช้งาน</a></li>
+      <li class="nav-item"><a class="nav-link <%= title === 'จัดการผู้ใช้งาน' ? 'active' : '' %>" href="/admin/manage-users"><i class="bi bi-people-fill me-2"></i>จัดการผู้ใช้งาน (Agent)</a></li>
+      <li class="nav-item"><a class="nav-link <%= title === 'จัดการ Username (ผู้เล่น)' ? 'active' : '' %>" href="/admin/manage-usernames"><i class="bi bi-person-circle me-2"></i>จัดการ Username (ผู้เล่น)</a></li>
       <li class="nav-item"><a class="nav-link <%= title === 'สร้าง API Key' ? 'active' : '' %>" href="/admin/generate-api"><i class="bi bi-key-fill me-2"></i>สร้าง API Key</a></li>
     </ul>
     <hr>

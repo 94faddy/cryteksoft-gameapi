@@ -4,7 +4,7 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const mongoose = require('mongoose');
-const { Api, Transaction, Tranday } = require('../_helpers/db');
+const { Api, Transaction, Tranday, User } = require('../_helpers/db');
 
 const ADMIN_USERNAME = 'godtroll@dev';
 const ADMIN_PASSWORD_HASH = '$2a$12$snc82XC4hOl1JMm6.hrL/eayClXKZU.FBDAoGdFB6FpESCkgyoU7e';
@@ -14,10 +14,9 @@ const isAdmin = (req, res, next) => {
     res.redirect('/admin');
 };
 
-// --- Routes สำหรับแสดงผลหน้าเว็บ (ส่วนนี้เหมือนเดิม) ---
+// --- Routes สำหรับแสดงผลหน้าเว็บ ---
 router.get('/', (req, res) => {
     if (req.session.isAdmin) return res.redirect('/admin/dashboard');
-    // 2. ส่ง turnstile_sitekey ไปให้ template 'admin/login'
     res.render('admin/login', {
         error: null,
         turnstile_sitekey: process.env.TURNSTILE_SITE_KEY
@@ -25,10 +24,8 @@ router.get('/', (req, res) => {
 });
 
 router.post('/login', async (req, res) => {
-    // 3. รับ Token ของ Turnstile จากฟอร์ม
     const { username, password, "cf-turnstile-response": turnstileToken } = req.body;
 
-    // ตรวจสอบว่ามี Token ส่งมาหรือไม่
     if (!turnstileToken) {
         return res.render('admin/login', {
             error: 'การยืนยันตัวตนล้มเหลว กรุณาลองใหม่อีกครั้ง',
@@ -37,7 +34,6 @@ router.post('/login', async (req, res) => {
     }
 
     try {
-        // 4. ส่ง Token ไปตรวจสอบที่ Cloudflare
         const verifyUrl = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
         const secretKey = process.env.TURNSTILE_SECRET_KEY;
 
@@ -50,7 +46,6 @@ router.post('/login', async (req, res) => {
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
         });
 
-        // ถ้าการยืนยัน Turnstile ไม่สำเร็จ
         if (!verifyRes.data.success) {
             return res.render('admin/login', {
                 error: 'การยืนยัน Captcha ล้มเหลว',
@@ -58,7 +53,6 @@ router.post('/login', async (req, res) => {
             });
         }
 
-        // 5. ถ้า Turnstile ผ่าน ให้ตรวจสอบชื่อผู้ใช้และรหัสผ่านต่อไป
         const isPasswordMatch = await bcrypt.compare(password, ADMIN_PASSWORD_HASH);
         if (username === ADMIN_USERNAME && isPasswordMatch) {
             req.session.isAdmin = true;
@@ -100,34 +94,35 @@ router.get('/generate-api', isAdmin, (req, res) => {
     res.render('admin/generate_api', { title: 'สร้าง API Key' });
 });
 
-// --- API Endpoints (ส่วนนี้มีการอัปเดต) ---
+// === เพิ่มหน้าใหม่: จัดการ Username (ผู้เล่น) ===
+router.get('/manage-usernames', isAdmin, (req, res) => {
+    res.render('admin/manage_usernames', { title: 'จัดการ Username (ผู้เล่น)' });
+});
 
-// GET /admin/api/dashboard-summary - (ฉบับแก้ไข: เพิ่มการกรองวันที่กลับเข้ามา)
+// --- API Endpoints ---
+
+// GET /admin/api/dashboard-summary
 router.get('/api/dashboard-summary', isAdmin, async (req, res) => {
     try {
-        const pipeline = []; // สร้าง pipeline ว่างๆ ไว้ก่อน
+        const pipeline = [];
 
-        // --- START: เพิ่มตรรกะการกรองวันที่กลับเข้ามา ---
         if (req.query.start && req.query.end) {
             const [month1, day1, year1] = req.query.start.split('/');
             const [month2, day2, year2] = req.query.end.split('/');
             const startDate = new Date(`${year1}-${month1}-${day1}`);
             const endDate = new Date(new Date(`${year2}-${month2}-${day2}`).setHours(23, 59, 59, 999));
 
-            // เนื่องจาก Tranday.data เป็น String (เช่น "06/29/2025") เราต้องแปลงเป็น Date object ก่อนเพื่อเปรียบเทียบ
-            // $addFields จะสร้าง field ใหม่ชื่อ 'convertedDate' เพื่อใช้ในการกรอง
             pipeline.push({
                 $addFields: {
                     convertedDate: {
                         $dateFromString: {
                             dateString: '$data',
-                            format: '%m/%d/%Y' // รูปแบบของวันที่ใน field 'data'
+                            format: '%m/%d/%Y'
                         }
                     }
                 }
             });
 
-            // เพิ่มขั้นตอนการกรอง (match) โดยใช้ field ที่เราเพิ่งสร้างขึ้น
             pipeline.push({
                 $match: {
                     convertedDate: {
@@ -137,10 +132,7 @@ router.get('/api/dashboard-summary', isAdmin, async (req, res) => {
                 }
             });
         }
-        // --- END: เพิ่มตรรกะการกรองวันที่กลับเข้ามา ---
 
-
-        // เพิ่มขั้นตอน $facet เข้าไปใน pipeline
         pipeline.push({
             $facet: {
                 "overall": [
@@ -175,7 +167,7 @@ router.get('/api/dashboard-summary', isAdmin, async (req, res) => {
     }
 });
 
-// **อัปเดต:** Create User API (เปลี่ยนจาก redirect เป็น res.json)
+// POST /admin/api/create-user
 router.post('/api/create-user', isAdmin, async (req, res) => {
     try {
         const { name, username, password, ip, callback } = req.body;
@@ -187,7 +179,7 @@ router.post('/api/create-user', isAdmin, async (req, res) => {
     }
 });
 
-// **อัปเดต:** Update User API (เปลี่ยนจาก redirect เป็น res.json)
+// POST /admin/api/update-user
 router.post('/api/update-user', isAdmin, async (req, res) => {
     try {
         const { userId, name, username, ip, callback, new_password, admin_password } = req.body;
@@ -206,7 +198,7 @@ router.post('/api/update-user', isAdmin, async (req, res) => {
     }
 });
 
-// **อัปเดต:** Delete User API (เปลี่ยนจาก redirect เป็น res.json)
+// POST /admin/api/delete-user
 router.post('/api/delete-user', isAdmin, async (req, res) => {
     try {
         const { userId, admin_password } = req.body;
@@ -221,14 +213,13 @@ router.post('/api/delete-user', isAdmin, async (req, res) => {
     }
 });
 
-// API สำหรับดึงข้อมูล Game Settings ของ User
+// GET /admin/api/get-user-settings/:userId
 router.get('/api/get-user-settings/:userId', isAdmin, async (req, res) => {
     try {
         const user = await Api.findById(req.params.userId).select('gameSettings').lean();
         if (!user) {
             return res.status(404).json({ success: false, message: 'ไม่พบผู้ใช้งาน' });
         }
-        // ถ้า user ยังไม่มีค่า setting ให้ส่ง object ว่างกลับไป เพื่อให้ frontend ใช้ค่า default
         res.json({ success: true, settings: user.gameSettings || {} });
     } catch (err) {
         console.error("Get User Settings Error:", err);
@@ -236,27 +227,22 @@ router.get('/api/get-user-settings/:userId', isAdmin, async (req, res) => {
     }
 });
 
-// API สำหรับอัปเดต Game Settings ของ User
+// POST /admin/api/update-user-settings
 router.post('/api/update-user-settings', isAdmin, async (req, res) => {
     try {
         const { userId, admin_password, ...settingsData } = req.body;
 
-        // 1. ตรวจสอบรหัสผ่าน Admin (เหมือนเดิม)
         const isAdminPassOk = await bcrypt.compare(admin_password, ADMIN_PASSWORD_HASH);
         if (!isAdminPassOk) {
             return res.status(401).json({ success: false, message: 'รหัสผ่าน Admin ไม่ถูกต้อง!' });
         }
 
-        // 2. ค้นหา User ที่ต้องการอัปเดต (เหมือนเดิม)
         const user = await Api.findById(userId);
         if (!user) {
             return res.status(404).json({ success: false, message: 'ไม่พบผู้ใช้งาน' });
         }
 
-        // --- START: แก้ไข Logic การบันทึก ---
-        // 3. สร้าง Object ใหม่สำหรับเก็บค่า Setting
         const newSettings = {};
-        // ใช้ Object.keys จาก defaultSettings ที่เรารู้จัก เพื่อความปลอดภัย
         const allowedKeys = [
             'normal-spin', 'less-bet', 'less-bet-from', 'less-bet-to',
             'more-bet', 'more-bet-from', 'more-bet-to', 'freespin-less-bet',
@@ -266,20 +252,15 @@ router.post('/api/update-user-settings', isAdmin, async (req, res) => {
             'buy-feature-more-bet-from', 'buy-feature-more-bet-to'
         ];
 
-        // วนลูปจาก key ที่อนุญาตเท่านั้น
         allowedKeys.forEach(key => {
-            // ตรวจสอบว่ามีข้อมูล key นี้ส่งมาจากฟอร์มหรือไม่ ถ้ามีให้ใช้ค่านั้น
             if (settingsData[key] !== undefined) {
                 newSettings[key] = Number(settingsData[key]);
             }
         });
         
-        // 4. นำ Object ใหม่ทั้งหมดไปแทนที่ gameSettings เดิม
         user.gameSettings = newSettings;
-        user.markModified('gameSettings'); // แจ้ง Mongoose ว่ามีการแก้ไข
-        await user.save(); // บันทึก
-
-        // --- END: แก้ไข Logic การบันทึก ---
+        user.markModified('gameSettings');
+        await user.save();
 
         res.json({ success: true, message: 'อัปเดตการตั้งค่าเกมสำเร็จ!' });
 
@@ -289,5 +270,166 @@ router.post('/api/update-user-settings', isAdmin, async (req, res) => {
     }
 });
 
+// ===================================================================
+// === API Endpoints ใหม่สำหรับ Manage Usernames ===
+// ===================================================================
+
+// GET /admin/api/all-usernames - ดึงรายชื่อ Username ทั้งหมด พร้อมสถิติ
+router.get('/api/all-usernames', isAdmin, async (req, res) => {
+    try {
+        const { start, end, agentId } = req.query;
+        
+        let matchCondition = { statusCode: 0 };
+        
+        // กรองตาม Agent ถ้ามีการเลือก
+        if (agentId && agentId !== 'all') {
+            matchCondition.apikey = new mongoose.Types.ObjectId(agentId);
+        }
+        
+        // กรองตามวันที่ถ้ามีการเลือก
+        if (start && end) {
+            const [month1, day1, year1] = start.split('/');
+            const [month2, day2, year2] = end.split('/');
+            const startDate = new Date(`${year1}-${month1}-${day1}T00:00:00.000Z`);
+            const endDate = new Date(`${year2}-${month2}-${day2}T23:59:59.999Z`);
+            matchCondition.createdDate = { $gte: startDate, $lte: endDate };
+        }
+
+        const usernames = await Transaction.aggregate([
+            { $match: matchCondition },
+            {
+                $group: {
+                    _id: {
+                        username: '$data.username',
+                        apikey: '$apikey'
+                    },
+                    totalBet: { $sum: '$betAmount' },
+                    totalWin: { $sum: '$payoutAmount' },
+                    totalGames: { $sum: 1 },
+                    lastPlayed: { $max: '$createdDate' }
+                }
+            },
+            {
+                $lookup: {
+                    from: 'apis',
+                    localField: '_id.apikey',
+                    foreignField: '_id',
+                    as: 'agentInfo'
+                }
+            },
+            {
+                $unwind: {
+                    path: '$agentInfo',
+                    preserveNullAndEmptyArrays: true
+                }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    username: '$_id.username',
+                    agentName: { $ifNull: ['$agentInfo.name', 'Unknown'] },
+                    agentUsername: { $ifNull: ['$agentInfo.username', 'N/A'] },
+                    totalBet: 1,
+                    totalWin: 1,
+                    totalGames: 1,
+                    winLoss: { $subtract: ['$totalWin', '$totalBet'] },
+                    lastPlayed: 1
+                }
+            },
+            { $sort: { totalBet: -1 } }
+        ]);
+
+        res.json({ success: true, usernames });
+
+    } catch (err) {
+        console.error("Get All Usernames Error:", err);
+        res.status(500).json({ success: false, message: 'เกิดข้อผิดพลาดในการดึงข้อมูล' });
+    }
+});
+
+// GET /admin/api/username-detail/:username - ดึงประวัติการเล่นของ Username
+router.get('/api/username-detail/:username', isAdmin, async (req, res) => {
+    try {
+        const { username } = req.params;
+        const { start, end, startTime, endTime } = req.query;
+
+        let matchCondition = {
+            'data.username': username,
+            statusCode: 0
+        };
+
+        // กรองตามวันที่และเวลา
+        if (start && end) {
+            const [month1, day1, year1] = start.split('/');
+            const [month2, day2, year2] = end.split('/');
+            
+            let startDate = new Date(`${year1}-${month1}-${day1}T00:00:00.000Z`);
+            let endDate = new Date(`${year2}-${month2}-${day2}T23:59:59.999Z`);
+
+            // ถ้ามีการระบุเวลา
+            if (startTime) {
+                const [startHour, startMinute] = startTime.split(':');
+                startDate = new Date(`${year1}-${month1}-${day1}T${startHour}:${startMinute}:00.000Z`);
+            }
+            
+            if (endTime) {
+                const [endHour, endMinute] = endTime.split(':');
+                endDate = new Date(`${year2}-${month2}-${day2}T${endHour}:${endMinute}:59.999Z`);
+            }
+
+            matchCondition.createdDate = { $gte: startDate, $lte: endDate };
+        }
+
+        const transactions = await Transaction.find(matchCondition)
+            .populate('apikey', 'name username')
+            .sort({ createdDate: -1 })
+            .limit(1000)
+            .lean();
+
+        // คำนวณสถิติรวม
+        const summary = transactions.reduce((acc, tx) => {
+            acc.totalBet += tx.betAmount;
+            acc.totalWin += tx.payoutAmount;
+            acc.totalGames += 1;
+            return acc;
+        }, { totalBet: 0, totalWin: 0, totalGames: 0 });
+
+        summary.winLoss = summary.totalWin - summary.totalBet;
+
+        const history = transactions.map(tx => ({
+            transactionId: tx.id,
+            gameId: tx.data.gameId,
+            productId: tx.data.productId,
+            betAmount: tx.betAmount,
+            payoutAmount: tx.payoutAmount,
+            winLoss: tx.payoutAmount - tx.betAmount,
+            currency: tx.data.currency || 'N/A',
+            createdDate: tx.createdDate,
+            agentName: tx.apikey?.name || 'Unknown',
+            agentUsername: tx.apikey?.username || 'N/A'
+        }));
+
+        res.json({ 
+            success: true, 
+            summary,
+            history 
+        });
+
+    } catch (err) {
+        console.error("Get Username Detail Error:", err);
+        res.status(500).json({ success: false, message: 'เกิดข้อผิดพลาดในการดึงข้อมูล' });
+    }
+});
+
+// GET /admin/api/agents-list - ดึงรายชื่อ Agent ทั้งหมด (สำหรับ Filter)
+router.get('/api/agents-list', isAdmin, async (req, res) => {
+    try {
+        const agents = await Api.find({}).select('_id name username').lean();
+        res.json({ success: true, agents });
+    } catch (err) {
+        console.error("Get Agents List Error:", err);
+        res.status(500).json({ success: false, message: 'เกิดข้อผิดพลาดในการดึงข้อมูล' });
+    }
+});
 
 module.exports = router;
