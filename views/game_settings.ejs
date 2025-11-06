@@ -57,9 +57,27 @@
         <h4 class="mb-3">เลือกการตั้งค่าเริ่มต้น (Presets)</h4>
         <p class="text-white-50 mb-4">เลือกรูปแบบการตั้งค่าที่ต้องการ จากนั้นกด "บันทึกการตั้งค่า" ด้านล่างเพื่อยืนยัน</p>
         <div class="preset-btn-group">
-            <button type="button" class="btn btn-outline-info" id="preset-balanced">
-                <i class="bi bi-heptagon-half"></i> สมดุล (แนะนำ)
+            <button type="button" class="btn btn-outline-danger" id="preset-house-advantage">
+                <i class="bi bi-trophy-fill"></i> บ้านได้เปรียบสูง (RTP ~7-10%)
             </button>
+            <button type="button" class="btn btn-outline-info" id="preset-balanced">
+                <i class="bi bi-heptagon-half"></i> สมดุล (RTP ~55-65%, แนะนำ)
+            </button>
+            <button type="button" class="btn btn-outline-success" id="preset-player-friendly">
+                <i class="bi bi-heart-fill"></i> ผู้เล่นได้เปรียบ (RTP ~55-65%)
+            </button>
+        </div>
+        
+        <!-- คำอธิบาย Presets -->
+        <div class="mt-4 text-start">
+            <div class="alert alert-info">
+                <h6 class="fw-bold mb-2">📌 คำอธิบาย Presets:</h6>
+                <ul class="mb-0 small">
+                    <li><strong>บ้านได้เปรียบสูง (RTP ~7-10%)</strong>: Free Spin หายากมาก (1/50+ รอบ), ผู้เล่นเสียเงินเร็ว, บ้านได้กำไรสูง ~90-93%</li>
+                    <li><strong>สมดุล (RTP ~55-65%, แนะนำ)</strong>: โอกาสชนะ 25-30%, โอกาสเสีย 70-75%, บ้านได้เปรียบ ~35-45%</li>
+                    <li><strong>ผู้เล่นได้เปรียบ (RTP ~55-65%)</strong>: Free Spin ออกบ่อยกว่า (1/50 รอบ), ผู้เล่นชนะบ่อยขึ้น, บ้านได้เปรียบน้อย ~35-45%</li>
+                </ul>
+            </div>
         </div>
     </div>
 
@@ -83,11 +101,11 @@
              <div class="row">
                 <div class="col-md-6">
                     <label class="form-label">Less Bet (ตัวคูณ Min/Max)</label>
-                    <div class="input-group"><input type="number" min="0" step="1" class="form-control" name="less-bet-from" value="<%= user.gameSettings['less-bet-from'] %>"><span class="input-group-text">-</span><input type="number" min="0" step="1" class="form-control" name="less-bet-to" value="<%= user.gameSettings['less-bet-to'] %>"></div>
+                    <div class="input-group"><input type="number" min="0" step="0.1" class="form-control" name="less-bet-from" value="<%= user.gameSettings['less-bet-from'] %>"><span class="input-group-text">-</span><input type="number" min="0" step="0.1" class="form-control" name="less-bet-to" value="<%= user.gameSettings['less-bet-to'] %>"></div>
                     </div>
                 <div class="col-md-6">
                     <label class="form-label">More Bet (ตัวคูณ Min/Max)</label>
-                    <div class="input-group"><input type="number" min="0" step="1" class="form-control" name="more-bet-from" value="<%= user.gameSettings['more-bet-from'] %>"><span class="input-group-text">-</span><input type="number" min="0" step="1" class="form-control" name="more-bet-to" value="<%= user.gameSettings['more-bet-to'] %>"></div>
+                    <div class="input-group"><input type="number" min="0" step="0.1" class="form-control" name="more-bet-from" value="<%= user.gameSettings['more-bet-from'] %>"><span class="input-group-text">-</span><input type="number" min="0" step="0.1" class="form-control" name="more-bet-to" value="<%= user.gameSettings['more-bet-to'] %>"></div>
                     </div>
             </div>
         </div>
@@ -107,11 +125,11 @@
              <div class="row">
                 <div class="col-md-6">
                     <label class="form-label">Free Spin Less Bet (ตัวคูณ Min/Max)</label>
-                     <div class="input-group"><input type="number" min="0" step="1" class="form-control" name="freespin-less-bet-from" value="<%= user.gameSettings['freespin-less-bet-from'] %>"><span class="input-group-text">-</span><input type="number" min="0" step="1" class="form-control" name="freespin-less-bet-to" value="<%= user.gameSettings['freespin-less-bet-to'] %>"></div>
+                     <div class="input-group"><input type="number" min="0" step="0.1" class="form-control" name="freespin-less-bet-from" value="<%= user.gameSettings['freespin-less-bet-from'] %>"><span class="input-group-text">-</span><input type="number" min="0" step="0.1" class="form-control" name="freespin-less-bet-to" value="<%= user.gameSettings['freespin-less-bet-to'] %>"></div>
                      </div>
                 <div class="col-md-6">
                     <label class="form-label">Free Spin More Bet (ตัวคูณ Min/Max)</label>
-                     <div class="input-group"><input type="number" min="0" step="1" class="form-control" name="freespin-more-bet-from" value="<%= user.gameSettings['freespin-more-bet-from'] %>"><span class="input-group-text">-</span><input type="number" min="0" step="1" class="form-control" name="freespin-more-bet-to" value="<%= user.gameSettings['freespin-more-bet-to'] %>"></div>
+                     <div class="input-group"><input type="number" min="0" step="0.1" class="form-control" name="freespin-more-bet-from" value="<%= user.gameSettings['freespin-more-bet-from'] %>"><span class="input-group-text">-</span><input type="number" min="0" step="0.1" class="form-control" name="freespin-more-bet-to" value="<%= user.gameSettings['freespin-more-bet-to'] %>"></div>
                      </div>
             </div>
         </div>
@@ -131,11 +149,11 @@
              <div class="row">
                 <div class="col-md-6">
                     <label class="form-label">Buy Feature Less Bet (ตัวคูณ Min/Max)</label>
-                     <div class="input-group"><input type="number" min="0" step="1" class="form-control" name="buy-feature-less-bet-from" value="<%= user.gameSettings['buy-feature-less-bet-from'] %>"><span class="input-group-text">-</span><input type="number" min="0" step="1" class="form-control" name="buy-feature-less-bet-to" value="<%= user.gameSettings['buy-feature-less-bet-to'] %>"></div>
+                     <div class="input-group"><input type="number" min="0" step="0.1" class="form-control" name="buy-feature-less-bet-from" value="<%= user.gameSettings['buy-feature-less-bet-from'] %>"><span class="input-group-text">-</span><input type="number" min="0" step="0.1" class="form-control" name="buy-feature-less-bet-to" value="<%= user.gameSettings['buy-feature-less-bet-to'] %>"></div>
                      </div>
                  <div class="col-md-6">
                     <label class="form-label">Buy Feature More Bet (ตัวคูณ Min/Max)</label>
-                     <div class="input-group"><input type="number" min="0" step="1" class="form-control" name="buy-feature-more-bet-from" value="<%= user.gameSettings['buy-feature-more-bet-from'] %>"><span class="input-group-text">-</span><input type="number" min="0" step="1" class="form-control" name="buy-feature-more-bet-to" value="<%= user.gameSettings['buy-feature-more-bet-to'] %>"></div>
+                     <div class="input-group"><input type="number" min="0" step="0.1" class="form-control" name="buy-feature-more-bet-from" value="<%= user.gameSettings['buy-feature-more-bet-from'] %>"><span class="input-group-text">-</span><input type="number" min="0" step="0.1" class="form-control" name="buy-feature-more-bet-to" value="<%= user.gameSettings['buy-feature-more-bet-to'] %>"></div>
                      </div>
              </div>
         </div>
@@ -149,16 +167,35 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const form = document.getElementById('gameSettingsForm');
+    
+    // Presets ที่แก้ไขแล้ว - ตามการวิเคราะห์ใหม่
     const presets = {
-        balanced: {
-            'normal-spin': 85, 'less-bet': 35, 'less-bet-from': 0, 'less-bet-to': 1,
-            'more-bet': 8, 'more-bet-from': 2, 'more-bet-to': 4,
-            'freespin-less-bet': 1, 'freespin-less-bet-from': 0, 'freespin-less-bet-to': 4,
-            'freespin-more-bet': 0, 'freespin-more-bet-from': 50, 'freespin-more-bet-to': 60,
-            'buy-feature-less-bet': 90, 'buy-feature-less-bet-from': 0, 'buy-feature-less-bet-to': 50,
-            'buy-feature-more-bet': 4, 'buy-feature-more-bet-from': 50, 'buy-feature-more-bet-to': 60
+        house_advantage: { // จาก update-settings.js (RTP ~7-10%, บ้านได้เปรียบสูง)
+            'normal-spin': 85, 'less-bet': 12, 'less-bet-from': 0, 'less-bet-to': 0.5,
+            'more-bet': 3, 'more-bet-from': 0.8, 'more-bet-to': 2,
+            'freespin-less-bet': 2, 'freespin-less-bet-from': 0, 'freespin-less-bet-to': 0,
+            'freespin-more-bet': 0.5, 'freespin-more-bet-from': 0, 'freespin-more-bet-to': 15,
+            'buy-feature-less-bet': 80, 'buy-feature-less-bet-from': 0, 'buy-feature-less-bet-to': 20,
+            'buy-feature-more-bet': 8, 'buy-feature-more-bet-from': 20, 'buy-feature-more-bet-to': 60
+        },
+        balanced: { // จาก update-settings-v2.js (RTP ~55-65%, สมดุล)
+            'normal-spin': 50, 'less-bet': 35, 'less-bet-from': 0, 'less-bet-to': 1.2,
+            'more-bet': 15, 'more-bet-from': 1.5, 'more-bet-to': 4,
+            'freespin-less-bet': 3, 'freespin-less-bet-from': 2, 'freespin-less-bet-to': 10,
+            'freespin-more-bet': 1, 'freespin-more-bet-from': 10, 'freespin-more-bet-to': 30,
+            'buy-feature-less-bet': 65, 'buy-feature-less-bet-from': 5, 'buy-feature-less-bet-to': 40,
+            'buy-feature-more-bet': 20, 'buy-feature-more-bet-from': 40, 'buy-feature-more-bet-to': 100
+        },
+        player_friendly: { // จาก update-settings-v4.js (RTP ~55-65%, ผู้เล่นได้เปรียบ)
+            'normal-spin': 55, 'less-bet': 32, 'less-bet-from': 0.2, 'less-bet-to': 1.1,
+            'more-bet': 13, 'more-bet-from': 1.5, 'more-bet-to': 3.5,
+            'freespin-less-bet': 1.5, 'freespin-less-bet-from': 1, 'freespin-less-bet-to': 8,
+            'freespin-more-bet': 0.5, 'freespin-more-bet-from': 8, 'freespin-more-bet-to': 20,
+            'buy-feature-less-bet': 70, 'buy-feature-less-bet-from': 5, 'buy-feature-less-bet-to': 30,
+            'buy-feature-more-bet': 15, 'buy-feature-more-bet-from': 30, 'buy-feature-more-bet-to': 80
         }
     };
+    
     function applyPreset(presetName) {
         const selectedPreset = presets[presetName];
         if (!selectedPreset) return;
@@ -178,7 +215,11 @@ document.addEventListener('DOMContentLoaded', function () {
             showConfirmButton: false, timer: 3000
         });
     }
+    
+    document.getElementById('preset-house-advantage').addEventListener('click', () => applyPreset('house_advantage'));
     document.getElementById('preset-balanced').addEventListener('click', () => applyPreset('balanced'));
+    document.getElementById('preset-player-friendly').addEventListener('click', () => applyPreset('player_friendly'));
+    
     function initializeSliders() {
         const sliders = [
             'normal-spin', 'less-bet', 'more-bet', 
@@ -198,6 +239,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
     initializeSliders();
+    
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
         const formData = new FormData(form);

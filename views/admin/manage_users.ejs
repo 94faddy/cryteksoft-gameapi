@@ -95,9 +95,21 @@
                     <div class="text-center mb-4 p-3 bg-light rounded">
                         <h6 class="mb-2">เลือกการตั้งค่าเริ่มต้น (Presets)</h6>
                         <div class="preset-btn-group">
-                            <button type="button" class="btn btn-sm btn-outline-primary" id="admin-preset-balanced">สมดุล (แนะนำ)</button>
-                            <!--<button type="button" class="btn btn-sm btn-outline-success" id="admin-preset-low-rtp">แตกบ่อย</button>
-                            <button type="button" class="btn btn-sm btn-outline-danger" id="admin-preset-high-rtp">เสี่ยงสูง</button>-->
+                            <button type="button" class="btn btn-sm btn-outline-danger" id="admin-preset-house-advantage">บ้านได้เปรียบสูง (RTP ~7-10%)</button>
+                            <button type="button" class="btn btn-sm btn-outline-primary" id="admin-preset-balanced">สมดุล (RTP ~55-65%, แนะนำ)</button>
+                            <button type="button" class="btn btn-sm btn-outline-success" id="admin-preset-player-friendly">ผู้เล่นได้เปรียบ (RTP ~55-65%)</button>
+                        </div>
+                        
+                        <!-- คำอธิบาย Presets -->
+                        <div class="mt-3 text-start">
+                            <div class="alert alert-info mb-0">
+                                <small>
+                                    <strong>📌 คำอธิบาย:</strong><br>
+                                    • <strong>บ้านได้เปรียบสูง:</strong> Free Spin หายากมาก, บ้านได้กำไร ~90-93%<br>
+                                    • <strong>สมดุล:</strong> โอกาสชนะ 25-30%, บ้านได้เปรียบ ~35-45%<br>
+                                    • <strong>ผู้เล่นได้เปรียบ:</strong> Free Spin ออกบ่อยกว่า, บ้านได้เปรียบน้อย ~35-45%
+                                </small>
+                            </div>
                         </div>
                     </div>
                     <div id="settings-form-content">
@@ -249,31 +261,32 @@ document.addEventListener('DOMContentLoaded', function() {
             'buy-feature-more-bet': 4, 'buy-feature-more-bet-from': 50, 'buy-feature-more-bet-to': 60
         };
 
+        // Presets ที่แก้ไขแล้ว - ตามการวิเคราะห์ใหม่
         const presets = {
-            balanced: {
-                'normal-spin': 85, 'less-bet': 35, 'less-bet-from': 0, 'less-bet-to': 1,
-                'more-bet': 8, 'more-bet-from': 2, 'more-bet-to': 4,
-                'freespin-less-bet': 1, 'freespin-less-bet-from': 0, 'freespin-less-bet-to': 4,
-                'freespin-more-bet': 0, 'freespin-more-bet-from': 50, 'freespin-more-bet-to': 60,
-                'buy-feature-less-bet': 90, 'buy-feature-less-bet-from': 0, 'buy-feature-less-bet-to': 50,
-                'buy-feature-more-bet': 4, 'buy-feature-more-bet-from': 50, 'buy-feature-more-bet-to': 60
-            }
-            /*low_rtp: {
-                'normal-spin': 85, 'less-bet': 12, 'less-bet-from': 0, 'less-bet-to': 1, 'more-bet': 3,
-                'more-bet-from': 2, 'more-bet-to': 7, 'freespin-less-bet': 80, 'freespin-less-bet-from': 0,
-                'freespin-less-bet-to': 12, 'freespin-more-bet': 20, 'freespin-more-bet-from': 15,
-                'freespin-more-bet-to': 45, 'buy-feature-less-bet': 90, 'buy-feature-less-bet-from': 2,
-                'buy-feature-less-bet-to': 40, 'buy-feature-more-bet': 10, 'buy-feature-more-bet-from': 100,
-                'buy-feature-more-bet-to': 250
+            house_advantage: { // จาก update-settings.js (RTP ~7-10%, บ้านได้เปรียบสูง)
+                'normal-spin': 85, 'less-bet': 12, 'less-bet-from': 0, 'less-bet-to': 0.5,
+                'more-bet': 3, 'more-bet-from': 0.8, 'more-bet-to': 2,
+                'freespin-less-bet': 2, 'freespin-less-bet-from': 0, 'freespin-less-bet-to': 0,
+                'freespin-more-bet': 0.5, 'freespin-more-bet-from': 0, 'freespin-more-bet-to': 15,
+                'buy-feature-less-bet': 80, 'buy-feature-less-bet-from': 0, 'buy-feature-less-bet-to': 20,
+                'buy-feature-more-bet': 8, 'buy-feature-more-bet-from': 20, 'buy-feature-more-bet-to': 60
             },
-            high_rtp: {
-                'normal-spin': 60, 'less-bet': 30, 'less-bet-from': 0, 'less-bet-to': 1, 'more-bet': 10,
-                'more-bet-from': 5, 'more-bet-to': 20, 'freespin-less-bet': 50, 'freespin-less-bet-from': 10,
-                'freespin-less-bet-to': 30, 'freespin-more-bet': 50, 'freespin-more-bet-from': 40,
-                'freespin-more-bet-to': 100, 'buy-feature-less-bet': 70, 'buy-feature-less-bet-from': 20,
-                'buy-feature-less-bet-to': 60, 'buy-feature-more-bet': 30, 'buy-feature-more-bet-from': 100,
-                'buy-feature-more-bet-to': 300
-            }*/
+            balanced: { // จาก update-settings-v2.js (RTP ~55-65%, สมดุล)
+                'normal-spin': 50, 'less-bet': 35, 'less-bet-from': 0, 'less-bet-to': 1.2,
+                'more-bet': 15, 'more-bet-from': 1.5, 'more-bet-to': 4,
+                'freespin-less-bet': 3, 'freespin-less-bet-from': 2, 'freespin-less-bet-to': 10,
+                'freespin-more-bet': 1, 'freespin-more-bet-from': 10, 'freespin-more-bet-to': 30,
+                'buy-feature-less-bet': 65, 'buy-feature-less-bet-from': 5, 'buy-feature-less-bet-to': 40,
+                'buy-feature-more-bet': 20, 'buy-feature-more-bet-from': 40, 'buy-feature-more-bet-to': 100
+            },
+            player_friendly: { // จาก update-settings-v4.js (RTP ~55-65%, ผู้เล่นได้เปรียบ)
+                'normal-spin': 55, 'less-bet': 32, 'less-bet-from': 0.2, 'less-bet-to': 1.1,
+                'more-bet': 13, 'more-bet-from': 1.5, 'more-bet-to': 3.5,
+                'freespin-less-bet': 1.5, 'freespin-less-bet-from': 1, 'freespin-less-bet-to': 8,
+                'freespin-more-bet': 0.5, 'freespin-more-bet-from': 8, 'freespin-more-bet-to': 20,
+                'buy-feature-less-bet': 70, 'buy-feature-less-bet-from': 5, 'buy-feature-less-bet-to': 30,
+                'buy-feature-more-bet': 15, 'buy-feature-more-bet-from': 30, 'buy-feature-more-bet-to': 80
+            }
         };
 
         function applyPreset(presetName) {
@@ -289,9 +302,9 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         
+        document.getElementById('admin-preset-house-advantage').addEventListener('click', () => applyPreset('house_advantage'));
         document.getElementById('admin-preset-balanced').addEventListener('click', () => applyPreset('balanced'));
-        /*document.getElementById('admin-preset-low-rtp').addEventListener('click', () => applyPreset('low_rtp'));
-        document.getElementById('admin-preset-high-rtp').addEventListener('click', () => applyPreset('high_rtp'));*/
+        document.getElementById('admin-preset-player-friendly').addEventListener('click', () => applyPreset('player_friendly'));
 
         function setupRangeSlider(container) {
             container.querySelectorAll('input[type="range"]').forEach(range => {
@@ -324,11 +337,11 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <input type="range" class="form-range" id="setting-${key}" name="${key}" min="0.1" max="100" step="0.1" value="${value}">
                             </div>`;
                         } else { 
-                            // ส่วนของตัวคูณ (แก้ไข step="1" ที่นี่)
+                            // ส่วนของตัวคูณ (แก้ไข step="0.1" ที่นี่)
                             return `
                             <div class="col-md-6 mb-3">
                                 <label for="setting-${key}" class="form-label">${label}</label>
-                                <input type="number" min="0" step="1" class="form-control" id="setting-${key}" name="${key}" value="${value}">
+                                <input type="number" min="0" step="0.1" class="form-control" id="setting-${key}" name="${key}" value="${value}">
                             </div>`;
                         }
                     }).join('')}
