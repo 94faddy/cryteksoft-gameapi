@@ -460,7 +460,7 @@ router.get('/api/user/all-players', isAuthenticated, async (req, res) => {
     }
 });
 
-// GET /api/user/player-detail/:username - ดึงประวัติการเล่นของ Username
+// GET /api/user/player-detail/:username - ดึงประวัติการเล่นของ Username (อัพเดทเพื่อเพิ่มรูปภาพ)
 router.get('/api/user/player-detail/:username', isAuthenticated, async (req, res) => {
     try {
         const userId = new mongoose.Types.ObjectId(req.session.user.id);
@@ -500,6 +500,9 @@ router.get('/api/user/player-detail/:username', isAuthenticated, async (req, res
             .limit(1000)
             .lean();
 
+        // ดึงข้อมูลรูปภาพเกม
+        const gameImagesMap = await getGameImagesMap();
+
         // คำนวณสถิติรวม
         const summary = transactions.reduce((acc, tx) => {
             acc.totalBet += tx.betAmount;
@@ -510,16 +513,26 @@ router.get('/api/user/player-detail/:username', isAuthenticated, async (req, res
 
         summary.winLoss = summary.totalWin - summary.totalBet;
 
-        const history = transactions.map(tx => ({
-            transactionId: tx.id,
-            gameId: tx.data.gameId,
-            productId: tx.data.productId,
-            betAmount: tx.betAmount,
-            payoutAmount: tx.payoutAmount,
-            winLoss: tx.payoutAmount - tx.betAmount,
-            currency: tx.data.currency || 'N/A',
-            createdDate: tx.createdDate
-        }));
+        // แมปข้อมูลพร้อมรูปภาพเกม
+        const history = transactions.map(tx => {
+            const gameInfo = gameImagesMap.get(String(tx.data.gameId)) || { 
+                imageUrl: '/img/default-game.png', 
+                gameName: tx.data.gameId 
+            };
+            
+            return {
+                transactionId: tx.id,
+                gameId: tx.data.gameId,
+                gameName: gameInfo.gameName,
+                imageUrl: gameInfo.imageUrl,
+                productId: tx.data.productId,
+                betAmount: tx.betAmount,
+                payoutAmount: tx.payoutAmount,
+                winLoss: tx.payoutAmount - tx.betAmount,
+                currency: tx.data.currency || 'N/A',
+                createdDate: tx.createdDate
+            };
+        });
 
         res.json({ 
             success: true, 

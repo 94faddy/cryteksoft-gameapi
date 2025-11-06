@@ -5,6 +5,7 @@ const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const mongoose = require('mongoose');
 const { Api, Transaction, Tranday, User } = require('../_helpers/db');
+const fetch = require('node-fetch');
 
 const ADMIN_USERNAME = 'godtroll@dev';
 const ADMIN_PASSWORD_HASH = '$2a$12$snc82XC4hOl1JMm6.hrL/eayClXKZU.FBDAoGdFB6FpESCkgyoU7e';
@@ -12,6 +13,32 @@ const ADMIN_PASSWORD_HASH = '$2a$12$snc82XC4hOl1JMm6.hrL/eayClXKZU.FBDAoGdFB6FpE
 const isAdmin = (req, res, next) => {
     if (req.session.isAdmin) return next();
     res.redirect('/admin');
+};
+
+// Helper function to fetch game lists and create a lookup map
+const getGameImagesMap = async () => {
+    const providers = ['PG', 'JOKER', 'JILI', 'PP'];
+    const gameMap = new Map();
+    try {
+        const promises = providers.map(provider =>
+            fetch(`https://games-api.cryteksoft.cloud/api/gamelist?provider=${provider}`).then(res => res.json())
+        );
+        const results = await Promise.all(promises);
+        results.forEach(providerGames => {
+            if (providerGames && Array.isArray(providerGames.games)) {
+                providerGames.games.forEach(game => {
+                    const key = game.provider === 'JILI' ? String(game.game_code) : String(game.game_id);
+                    gameMap.set(key, {
+                        imageUrl: game.image_url,
+                        gameName: game.game_name
+                    });
+                });
+            }
+        });
+    } catch (error) {
+        console.error("Failed to fetch game lists:", error);
+    }
+    return gameMap;
 };
 
 // --- Routes สำหรับแสดงผลหน้าเว็บ ---
@@ -347,7 +374,7 @@ router.get('/api/all-usernames', isAdmin, async (req, res) => {
     }
 });
 
-// GET /admin/api/username-detail/:username - ดึงประวัติการเล่นของ Username
+// GET /admin/api/username-detail/:username - ดึงประวัติการเล่นของ Username (อัพเดทเพื่อเพิ่มรูปภาพ)
 router.get('/api/username-detail/:username', isAdmin, async (req, res) => {
     try {
         const { username } = req.params;
@@ -386,6 +413,9 @@ router.get('/api/username-detail/:username', isAdmin, async (req, res) => {
             .limit(1000)
             .lean();
 
+        // ดึงข้อมูลรูปภาพเกม
+        const gameImagesMap = await getGameImagesMap();
+
         // คำนวณสถิติรวม
         const summary = transactions.reduce((acc, tx) => {
             acc.totalBet += tx.betAmount;
@@ -396,18 +426,28 @@ router.get('/api/username-detail/:username', isAdmin, async (req, res) => {
 
         summary.winLoss = summary.totalWin - summary.totalBet;
 
-        const history = transactions.map(tx => ({
-            transactionId: tx.id,
-            gameId: tx.data.gameId,
-            productId: tx.data.productId,
-            betAmount: tx.betAmount,
-            payoutAmount: tx.payoutAmount,
-            winLoss: tx.payoutAmount - tx.betAmount,
-            currency: tx.data.currency || 'N/A',
-            createdDate: tx.createdDate,
-            agentName: tx.apikey?.name || 'Unknown',
-            agentUsername: tx.apikey?.username || 'N/A'
-        }));
+        // แมปข้อมูลพร้อมรูปภาพเกม
+        const history = transactions.map(tx => {
+            const gameInfo = gameImagesMap.get(String(tx.data.gameId)) || { 
+                imageUrl: '/img/default-game.png', 
+                gameName: tx.data.gameId 
+            };
+            
+            return {
+                transactionId: tx.id,
+                gameId: tx.data.gameId,
+                gameName: gameInfo.gameName,
+                imageUrl: gameInfo.imageUrl,
+                productId: tx.data.productId,
+                betAmount: tx.betAmount,
+                payoutAmount: tx.payoutAmount,
+                winLoss: tx.payoutAmount - tx.betAmount,
+                currency: tx.data.currency || 'N/A',
+                createdDate: tx.createdDate,
+                agentName: tx.apikey?.name || 'Unknown',
+                agentUsername: tx.apikey?.username || 'N/A'
+            };
+        });
 
         res.json({ 
             success: true, 

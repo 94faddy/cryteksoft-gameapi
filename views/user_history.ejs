@@ -84,7 +84,7 @@
                             <th>Total Bet</th>
                             <th>Total Win</th>
                             <th>Win/Loss</th>
-                            <th>จำนวนเกม</th>
+                            <th>Spin</th>
                             <th>เล่นล่าสุด</th>
                             <th>Actions</th>
                         </tr>
@@ -183,7 +183,7 @@
                         <thead class="table-light">
                             <tr>
                                 <th>วันที่/เวลา</th>
-                                <th>Game ID</th>
+                                <th>เกม</th>
                                 <th>Provider</th>
                                 <th>Bet</th>
                                 <th>Win</th>
@@ -210,6 +210,20 @@
         </div>
     </div>
 </div>
+
+<style>
+    #historyTable img.game-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 5px;
+        margin-right: 8px;
+        vertical-align: middle;
+    }
+    #historyTable th, #historyTable td {
+        white-space: nowrap;
+        vertical-align: middle;
+    }
+</style>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -375,7 +389,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // แสดงประวัติในตาราง
+    // แสดงประวัติในตาราง (อัพเดทเพื่อแสดงรูปภาพและชื่อเกม)
     function displayPlayerHistory(history, summary) {
         // อัปเดตสถิติ
         document.getElementById('modal-total-bet').textContent = summary.totalBet.toFixed(2);
@@ -391,11 +405,12 @@ document.addEventListener('DOMContentLoaded', function() {
         historyTableBody.innerHTML = history.map(tx => {
             const winLossClass = tx.winLoss >= 0 ? 'text-success' : 'text-danger';
             const createdDate = new Date(tx.createdDate).toLocaleString('th-TH');
+            const gameDisplay = `<img src="${tx.imageUrl}" class="game-icon" alt="${tx.gameName}" onerror="this.onerror=null;this.src='/img/default-game.png';"><span>${tx.gameName}</span>`;
             
             return `
                 <tr>
                     <td><small>${createdDate}</small></td>
-                    <td>${tx.gameId}</td>
+                    <td>${gameDisplay}</td>
                     <td>${tx.productId}</td>
                     <td>${tx.betAmount.toFixed(2)}</td>
                     <td>${tx.payoutAmount.toFixed(2)}</td>
