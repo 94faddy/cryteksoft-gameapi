@@ -547,7 +547,7 @@ router.get('/api/user/player-detail/:username', isAuthenticated, async (req, res
 });
 
 // ===================================================================
-// ✅ API ใหม่สำหรับจัดการ User Game Settings (Per-User)
+// ✅ API สำหรับจัดการ User Game Settings (Per-User) - แก้ไขแล้ว
 // ===================================================================
 
 // GET /api/user/player-settings/:username - ดึง Settings ของ Player
@@ -556,6 +556,9 @@ router.get('/api/user/player-settings/:username', isAuthenticated, async (req, r
         const userId = new mongoose.Types.ObjectId(req.session.user.id);
         const { username } = req.params;
 
+        console.log('📥 Fetching settings for username:', username);
+        console.log('📌 Agent ID:', userId);
+
         // ค้นหา User ที่ตรงกับ username และ apikey
         const player = await User.findOne({
             username: username,
@@ -563,14 +566,23 @@ router.get('/api/user/player-settings/:username', isAuthenticated, async (req, r
         }).lean();
 
         if (!player) {
+            console.log('❌ Player not found');
             return res.status(404).json({ 
                 success: false, 
                 message: 'ไม่พบผู้เล่นนี้ในระบบ' 
             });
         }
 
-        // ถ้าใช้ settings ของ Agent
-        if (player.useAgentSettings) {
+        console.log('✅ Player found:', player.username);
+        console.log('📌 useAgentSettings:', player.useAgentSettings);
+        console.log('📌 Has custom gameSettings:', Object.keys(player.gameSettings || {}).length > 0);
+
+        // ✅ ตรวจสอบว่าใช้ settings ของ Agent หรือไม่
+        // Default: useAgentSettings = true
+        const useAgentSettings = player.useAgentSettings !== false; // undefined หรือ true = ใช้ของ Agent
+
+        if (useAgentSettings) {
+            console.log('✅ Using Agent Settings (default)');
             const agent = await Api.findById(userId).lean();
             return res.json({
                 success: true,
@@ -580,6 +592,7 @@ router.get('/api/user/player-settings/:username', isAuthenticated, async (req, r
         }
 
         // ถ้าใช้ custom settings
+        console.log('✅ Using Custom User Settings');
         res.json({
             success: true,
             useAgentSettings: false,
@@ -587,10 +600,10 @@ router.get('/api/user/player-settings/:username', isAuthenticated, async (req, r
         });
 
     } catch (err) {
-        console.error("Get Player Settings Error:", err);
+        console.error("❌ Get Player Settings Error:", err);
         res.status(500).json({ 
             success: false, 
-            message: 'เกิดข้อผิดพลาดในการดึงข้อมูล' 
+            message: 'เกิดข้อผิดพลาดในการดึงข้อมูล: ' + err.message 
         });
     }
 });
@@ -601,6 +614,10 @@ router.post('/api/user/update-player-settings', isAuthenticated, async (req, res
         const userId = new mongoose.Types.ObjectId(req.session.user.id);
         const { username, useAgentSettings, ...settingsData } = req.body;
 
+        console.log('📥 Updating settings for username:', username);
+        console.log('📌 useAgentSettings:', useAgentSettings);
+        console.log('📌 Settings data keys:', Object.keys(settingsData));
+
         // ค้นหา User
         const player = await User.findOne({
             username: username,
@@ -608,17 +625,25 @@ router.post('/api/user/update-player-settings', isAuthenticated, async (req, res
         });
 
         if (!player) {
+            console.log('❌ Player not found');
             return res.status(404).json({ 
                 success: false, 
                 message: 'ไม่พบผู้เล่นนี้ในระบบ' 
             });
         }
 
-        // อัพเดท useAgentSettings
-        player.useAgentSettings = useAgentSettings === true || useAgentSettings === 'true';
+        console.log('✅ Player found:', player.username);
 
-        // ถ้าไม่ใช้ Agent Settings, อัพเดท custom settings
+        // ✅ อัพเดท useAgentSettings (แปลงเป็น Boolean ให้แน่ใจ)
+        const newUseAgentSettings = useAgentSettings === true || useAgentSettings === 'true';
+        player.useAgentSettings = newUseAgentSettings;
+
+        console.log('📌 New useAgentSettings value:', player.useAgentSettings);
+
+        // ✅ ถ้าไม่ใช้ Agent Settings, อัพเดท custom settings
         if (!player.useAgentSettings) {
+            console.log('✅ Updating custom settings...');
+            
             const allowedKeys = [
                 'normal-spin', 'less-bet', 'less-bet-from', 'less-bet-to',
                 'more-bet', 'more-bet-from', 'more-bet-to', 'freespin-less-bet',
@@ -630,14 +655,19 @@ router.post('/api/user/update-player-settings', isAuthenticated, async (req, res
 
             allowedKeys.forEach(key => {
                 if (settingsData[key] !== undefined) {
-                    player.gameSettings[key] = Number(settingsData[key]);
+                    const value = Number(settingsData[key]);
+                    player.gameSettings[key] = value;
+                    console.log(`  ✓ ${key}: ${value}`);
                 }
             });
 
             player.markModified('gameSettings');
+        } else {
+            console.log('✅ Using Agent Settings - no custom settings saved');
         }
 
         await player.save();
+        console.log('✅ Settings saved successfully');
 
         res.json({ 
             success: true, 
@@ -645,10 +675,10 @@ router.post('/api/user/update-player-settings', isAuthenticated, async (req, res
         });
 
     } catch (err) {
-        console.error("Update Player Settings Error:", err);
+        console.error("❌ Update Player Settings Error:", err);
         res.status(500).json({ 
             success: false, 
-            message: 'เกิดข้อผิดพลาดในการบันทึกข้อมูล' 
+            message: 'เกิดข้อผิดพลาดในการบันทึกข้อมูล: ' + err.message 
         });
     }
 });

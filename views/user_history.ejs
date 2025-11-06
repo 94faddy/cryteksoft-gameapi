@@ -230,13 +230,15 @@
                             <div class="form-check">
                                 <input class="form-check-input" type="radio" name="settingsMode" id="useAgentSettings" value="agent" checked>
                                 <label class="form-check-label" for="useAgentSettings">
-                                    ใช้การตั้งค่าจาก Agent (Default)
+                                    <strong>ใช้การตั้งค่าจาก Agent (Default)</strong>
+                                    <br><small class="text-muted">ผู้เล่นจะใช้การตั้งค่าเดียวกับ Agent</small>
                                 </label>
                             </div>
-                            <div class="form-check">
+                            <div class="form-check mt-2">
                                 <input class="form-check-input" type="radio" name="settingsMode" id="useCustomSettings" value="custom">
                                 <label class="form-check-label" for="useCustomSettings">
-                                    ตั้งค่าเอง (Custom per-user)
+                                    <strong>ตั้งค่าเอง (Custom per-user)</strong>
+                                    <br><small class="text-muted">กำหนดการตั้งค่าเฉพาะสำหรับผู้เล่นคนนี้</small>
                                 </label>
                             </div>
                         </div>
@@ -283,7 +285,9 @@
                 </div>
                 <div class="modal-footer border-secondary">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
-                    <button type="submit" class="btn btn-primary">บันทึกการตั้งค่า</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fa-solid fa-save me-1"></i>บันทึกการตั้งค่า
+                    </button>
                 </div>
             </form>
         </div>
@@ -588,28 +592,35 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // ===================================================================
-    // ✅ จัดการ Game Settings Modal
+    // ✅ จัดการ Game Settings Modal (แก้ไขแล้ว)
     // ===================================================================
 
     // เปลี่ยนโหมด: Agent Settings <-> Custom Settings
     useAgentSettings.addEventListener('change', function() {
         if (this.checked) {
             customSettingsSection.style.display = 'none';
+            console.log('✅ Switched to Agent Settings mode');
         }
     });
 
     useCustomSettings.addEventListener('change', function() {
         if (this.checked) {
             customSettingsSection.style.display = 'block';
+            console.log('✅ Switched to Custom Settings mode');
         }
     });
 
-    // ฟังก์ชันโหลด Settings ของ Player
+    // ✅ ฟังก์ชันโหลด Settings ของ Player (แก้ไขแล้ว)
     async function loadPlayerSettings(username) {
         settingsModalUsername.textContent = username;
         settingsFormContent.innerHTML = '';
         settingsFormLoader.classList.remove('d-none');
+        
+        // ✅ รีเซ็ต Radio และซ่อน Custom Section ก่อนโหลด
+        useAgentSettings.checked = true;
+        useCustomSettings.checked = false;
         customSettingsSection.style.display = 'none';
+        
         gameSettingsModal.show();
 
         try {
@@ -618,11 +629,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
             if (!data.success) throw new Error(data.message);
 
-            // ตั้งค่า Radio Button
-            if (data.useAgentSettings) {
+            console.log('📥 Loaded Settings from API:', data);
+            console.log('📌 useAgentSettings value:', data.useAgentSettings);
+
+            // ✅ ตั้งค่า Radio Button ตามค่าจาก API (แบบ Explicit)
+            if (data.useAgentSettings === true) {
+                console.log('✅ Setting Radio to: Agent Settings (true)');
                 useAgentSettings.checked = true;
+                useCustomSettings.checked = false;
                 customSettingsSection.style.display = 'none';
             } else {
+                console.log('✅ Setting Radio to: Custom Settings (false)');
+                useAgentSettings.checked = false;
                 useCustomSettings.checked = true;
                 customSettingsSection.style.display = 'block';
             }
@@ -632,6 +650,7 @@ document.addEventListener('DOMContentLoaded', function() {
             buildSettingsForm(settings);
 
         } catch (error) {
+            console.error('❌ Error loading player settings:', error);
             Swal.fire({ 
                 icon: 'error', 
                 title: 'ผิดพลาด!', 
@@ -699,15 +718,33 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
         }
+        
+        Swal.fire({
+            icon: 'success',
+            title: 'นำค่าเริ่มต้นมาใช้แล้ว!',
+            text: `ใช้ค่า Preset: ${presetName}`,
+            timer: 1500,
+            showConfirmButton: false
+        });
     }
 
     document.getElementById('preset-house-advantage').addEventListener('click', () => applyPreset('house_advantage'));
     document.getElementById('preset-balanced').addEventListener('click', () => applyPreset('balanced'));
     document.getElementById('preset-player-friendly').addEventListener('click', () => applyPreset('player_friendly'));
 
-    // Submit Game Settings Form
+    // ✅ Submit Game Settings Form (แก้ไขแล้ว)
     gameSettingsForm.addEventListener('submit', async function(e) {
         e.preventDefault();
+        
+        // แสดง Loading
+        Swal.fire({
+            title: 'กำลังบันทึก...',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
         const formData = new FormData(gameSettingsForm);
         const data = Object.fromEntries(formData.entries());
 
@@ -715,12 +752,15 @@ document.addEventListener('DOMContentLoaded', function() {
         data.username = currentUsername;
         data.useAgentSettings = useAgentSettings.checked;
 
+        console.log('📤 Submitting Settings:', data);
+
         try {
             const response = await fetch('/api/user/update-player-settings', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
             });
+            
             const result = await response.json();
 
             if (result.success) {
@@ -736,6 +776,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 throw new Error(result.message);
             }
         } catch (error) {
+            console.error('❌ Error updating settings:', error);
             Swal.fire({ 
                 icon: 'error', 
                 title: 'เกิดข้อผิดพลาด!', 
