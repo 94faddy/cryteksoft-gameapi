@@ -89,8 +89,6 @@ router.get('/manage-2fa', isAuthenticated, async (req, res) => {
     res.render('manage_2fa', { user: user, title: 'จัดการ 2FA' });
 });
 
-// --- API Endpoints ---
-
 router.get('/api/user/totals', isAuthenticated, async (req, res) => {
     try {
         const userId = new mongoose.Types.ObjectId(req.session.user.id);
@@ -342,15 +340,46 @@ router.get('/api/user/report', isAuthenticated, async (req, res) => {
                 createdDate: { $gte: startDate, $lte: endDate }
             };
 
-            transactions = await Transaction.find(matchCondition).sort({ createdDate: -1 }).lean();
+            // ✅ ใช้ Aggregation แทน find() เพื่อความเร็ว
+            const result = await Transaction.aggregate([
+                { $match: matchCondition },
+                {
+                    $facet: {
+                        totals: [
+                            {
+                                $group: {
+                                    _id: null,
+                                    total_bet: { $sum: '$betAmount' },
+                                    total_win: { $sum: '$payoutAmount' }
+                                }
+                            }
+                        ],
+                        transactions: [
+                            { $sort: { createdDate: -1 } },
+                            { $limit: 1000 }, // ✅ จำกัดไม่เกิน 1000 รายการ
+                            {
+                                $project: {
+                                    _id: 0,
+                                    id: 1,
+                                    betAmount: 1,
+                                    payoutAmount: 1,
+                                    createdDate: 1,
+                                    'data.username': 1,
+                                    'data.productId': 1,
+                                    'data.gameId': 1,
+                                    'data.currency': 1
+                                }
+                            }
+                        ]
+                    }
+                }
+            ]);
 
-            totalsData = transactions.reduce((acc, tx) => {
-                acc.total_bet += tx.betAmount;
-                acc.total_win += tx.payoutAmount;
-                return acc;
-            }, { total_bet: 0, total_win: 0 });
+            totalsData = result[0].totals[0] || { total_bet: 0, total_win: 0 };
+            transactions = result[0].transactions;
 
         } else {
+            // ✅ กรณีไม่มีการเลือกวันที่ - ดึงจาก Tranday (เร็วกว่า)
             const overallTotals = await Tranday.aggregate([
                 { $match: { apikey: userId } },
                 {
@@ -360,30 +389,41 @@ router.get('/api/user/report', isAuthenticated, async (req, res) => {
                         total_win: { $sum: '$payoutAmount' }
                     }
                 }
-            ]).exec();
+            ]);
             
             totalsData = overallTotals.length > 0 ? overallTotals[0] : { total_bet: 0, total_win: 0 };
             
-            transactions = await Transaction.find({ apikey: userId, statusCode: 0 })
+            // ✅ ดึงแค่ 1000 รายการล่าสุด
+            transactions = await Transaction.find({ 
+                apikey: userId, 
+                statusCode: 0 
+            })
                 .sort({ createdDate: -1 })
+                .limit(1000)
+                .select('id betAmount payoutAmount createdDate data.username data.productId data.gameId data.currency')
                 .lean();
         }
 
         const total_loss = totalsData.total_win - totalsData.total_bet;
 
+        // ✅ แมปข้อมูลอย่างรวดเร็ว
         const history = transactions.map(tx => {
-            const gameInfo = gameImagesMap.get(String(tx.data.gameId)) || { imageUrl: '/img/default-game.png', gameName: tx.data.gameId };
+            const gameInfo = gameImagesMap.get(String(tx.data?.gameId)) || { 
+                imageUrl: '/img/default-game.png', 
+                gameName: tx.data?.gameId || 'Unknown'
+            };
+            
             return {
                 createdDate: tx.createdDate,
-                username: tx.data.username,
-                productId: tx.data.productId,
-                gameId: tx.data.gameId,
+                username: tx.data?.username || 'N/A',
+                productId: tx.data?.productId || 'N/A',
+                gameId: tx.data?.gameId || 'N/A',
                 gameName: gameInfo.gameName,
                 imageUrl: gameInfo.imageUrl,
                 betAmount: tx.betAmount,
                 payoutAmount: tx.payoutAmount,
                 winLoss: tx.payoutAmount - tx.betAmount,
-                currency: tx.data.currency || 'N/A',
+                currency: tx.data?.currency || 'N/A',
                 transactionId: tx.id,
             };
         });
@@ -402,10 +442,6 @@ router.get('/api/user/report', isAuthenticated, async (req, res) => {
         res.status(500).json({ error: 'Internal Server Error' });
     }
 });
-
-// ===================================================================
-// === API ใหม่สำหรับ User History (ประวัติผู้เล่นแบบละเอียด) ===
-// ===================================================================
 
 // GET /api/user/all-players - ดึงรายชื่อ Username ทั้งหมดของ Agent
 router.get('/api/user/all-players', isAuthenticated, async (req, res) => {
@@ -545,10 +581,6 @@ router.get('/api/user/player-detail/:username', isAuthenticated, async (req, res
         res.status(500).json({ success: false, message: 'เกิดข้อผิดพลาดในการดึงข้อมูล' });
     }
 });
-
-// ===================================================================
-// ✅ API สำหรับจัดการ User Game Settings (Per-User) - แก้ไขแล้ว
-// ===================================================================
 
 // GET /api/user/player-settings/:username - ดึง Settings ของ Player
 router.get('/api/user/player-settings/:username', isAuthenticated, async (req, res) => {

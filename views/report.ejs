@@ -13,7 +13,39 @@
         white-space: nowrap;
         vertical-align: middle;
     }
+    
+    /* ✅ เพิ่ม Loading Overlay */
+    .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+    }
+    .loading-overlay.active {
+        display: flex;
+    }
+    .loading-content {
+        text-align: center;
+        color: white;
+    }
 </style>
+
+<!-- ✅ Loading Overlay -->
+<div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-content">
+        <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <h4>กำลังโหลดข้อมูล...</h4>
+        <p>กรุณารอสักครู่</p>
+    </div>
+</div>
 
 <div class="container-fluid">
     <h3 class="mb-4"><%= title %></h3>
@@ -51,7 +83,9 @@
     </div>
     
     <div class="card card-report">
-        <div class="card-header p-3">ประวัติรายการ</div>
+        <div class="card-header p-3">
+            ประวัติรายการ <span class="badge bg-info ms-2" id="recordCount">0 รายการ</span>
+        </div>
         <div class="card-body p-0">
             <div class="table-responsive">
                 <table id="reportTable" class="table table-dark table-striped mb-0" style="width:100%">
@@ -79,6 +113,17 @@
 
 <script>
 $(document).ready(function() {
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    
+    // ✅ ฟังก์ชันแสดง/ซ่อน Loading
+    function showLoading() {
+        loadingOverlay.classList.add('active');
+    }
+    
+    function hideLoading() {
+        loadingOverlay.classList.remove('active');
+    }
+    
     // เช็คว่า DataTable พร้อมใช้งานหรือยัง
     if (typeof $.fn.DataTable === 'undefined') {
         console.error('DataTables ไม่ถูกโหลด กรุณาตรวจสอบ CSP และ CDN');
@@ -120,14 +165,7 @@ $(document).ready(function() {
     });
 
     function loadReportData(startDate, endDate) {
-        Swal.fire({ 
-            title: 'กำลังโหลดข้อมูล...', 
-            text: 'กรุณารอสักครู่', 
-            allowOutsideClick: false, 
-            didOpen: () => { 
-                Swal.showLoading(); 
-            } 
-        });
+        showLoading(); // ✅ แสดง Loading
 
         let apiUrl = '/api/user/report';
         if (startDate && endDate) {
@@ -159,9 +197,14 @@ $(document).ready(function() {
                     ]);
                 });
                 reportTable.draw();
-                Swal.close();
+                
+                // ✅ อัพเดทจำนวนรายการ
+                $('#recordCount').text(`${data.history.length.toLocaleString()} รายการ`);
+                
+                hideLoading(); // ✅ ซ่อน Loading
             },
             error: function(err) {
+                hideLoading(); // ✅ ซ่อน Loading
                 Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถดึงข้อมูลรายงานได้', 'error');
                 console.error(err);
             }
