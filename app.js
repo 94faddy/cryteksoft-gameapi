@@ -51,25 +51,32 @@ app.use((req, res, next) => {
 });
 
 // --- ⚙️ Connect to MongoDB (for session + models) ---
-mongoose.connect(process.env.MONGO_URI_TMP)
-  .then(() => {
-    console.log('✅ MongoDB connected for session store.');
-  })
-  .catch((err) => {
-    console.error('❌ MongoDB connection error:', err);
-  });
+// ✅ แก้: ใช้ mongoose จาก db.js ที่มี connection pooling แล้ว
+// ไม่ต้อง connect ซ้ำที่นี่เพราะ db.js connect ไว้แล้ว
+
+// ✅ รอให้ mongoose connected ก่อนจะเริ่ม server
+mongoose.connection.once('open', () => {
+  console.log('✅ MongoDB connected and ready');
+});
 
 // --- 🔐 Session Configuration ---
+// ✅ แก้: เพิ่ม config สำหรับ session store
 app.use(session({
   secret: process.env.TOKEN_SECRET,
   resave: false,
   saveUninitialized: false,
   store: MongoStore.create({
     mongoUrl: process.env.MONGO_URI_TMP,
-    collectionName: 'sessions'
+    collectionName: 'sessions',
+    ttl: 60 * 60, // ✅ เพิ่ม: TTL 1 ชั่วโมง (เหมือน cookie)
+    autoRemove: 'native', // ✅ เพิ่ม: ลบ session หมดอายุอัตโนมัติ
+    touchAfter: 24 * 3600 // ✅ เพิ่ม: อัปเดต session ทุก 24 ชม.
   }),
   cookie: {
-    maxAge: 1000 * 60 * 60 // 1 ชั่วโมง
+    maxAge: 1000 * 60 * 60, // 1 ชั่วโมง
+    httpOnly: true, // ✅ เพิ่ม: ป้องกัน XSS
+    secure: process.env.NODE_ENV === 'production', // ✅ เพิ่ม: HTTPS only ใน production
+    sameSite: 'strict' // ✅ เพิ่ม: ป้องกัน CSRF
   }
 }));
 
@@ -130,8 +137,35 @@ app.use((req, res, next) => {
   res.status(404).render('404', { url: req.originalUrl });
 });
 
+// ✅ เพิ่ม: Global Error Handler
+app.use((err, req, res, next) => {
+  console.error('❌ Global Error:', err);
+  res.status(500).json({ 
+    success: false, 
+    message: 'Internal Server Error',
+    error: process.env.NODE_ENV === 'development' ? err.message : undefined
+  });
+});
+
 // --- 🚀 Start Server ---
 const PORT = process.env.PORT || 80;
-app.listen(PORT, () => {
-  console.log(`🌐 Server running on port ${PORT}`);
+
+// ✅ แก้: เริ่ม server หลังจาก MongoDB connected
+mongoose.connection.once('open', () => {
+  app.listen(PORT, () => {
+    console.log(`🌐 Server running on port ${PORT}`);
+  });
+});
+
+// ✅ เพิ่ม: Handle process termination
+process.on('SIGINT', async () => {
+  console.log('⚠️ SIGINT signal received: closing MongoDB connection');
+  await mongoose.connection.close();
+  process.exit(0);
+});
+
+process.on('SIGTERM', async () => {
+  console.log('⚠️ SIGTERM signal received: closing MongoDB connection');
+  await mongoose.connection.close();
+  process.exit(0);
 });

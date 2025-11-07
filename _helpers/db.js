@@ -1,6 +1,35 @@
 const mongoose = require('mongoose');
 mongoose.set("strictQuery", false);
-const conn = mongoose.createConnection(process.env.MONGO_URI_TMP);
+
+// ✅ แก้: ใช้ mongoose.connect แทน createConnection เพื่อ connection pooling ที่ดีกว่า
+const mongoOptions = {
+    maxPoolSize: 10, // จำนวน connection สูงสุดใน pool
+    minPoolSize: 2,  // จำนวน connection ขั้นต่ำใน pool
+    serverSelectionTimeoutMS: 5000, // timeout 5 วินาที
+    socketTimeoutMS: 45000, // socket timeout
+    family: 4 // ใช้ IPv4
+};
+
+// ✅ ใช้ mongoose.connect แทนการสร้าง connection แยก
+mongoose.connect(process.env.MONGO_URI_TMP, mongoOptions)
+    .then(() => console.log('✅ MongoDB connected with pooling'))
+    .catch(err => console.error('❌ MongoDB connection error:', err));
+
+// ✅ เพิ่ม event listeners เพื่อ monitor connection
+mongoose.connection.on('disconnected', () => {
+    console.warn('⚠️ MongoDB disconnected. Attempting to reconnect...');
+});
+
+mongoose.connection.on('reconnected', () => {
+    console.log('✅ MongoDB reconnected');
+});
+
+mongoose.connection.on('error', (err) => {
+    console.error('❌ MongoDB connection error:', err);
+});
+
+// ✅ ใช้ default connection แทนการสร้างใหม่
+const conn = mongoose.connection;
 
 mongoose.Query.prototype.options = { allowDiskUse: true };
 
@@ -59,6 +88,10 @@ const logSchema = new mongoose.Schema({
     createdDate: { type: Date, default: Date.now }
 });
 
+// ✅ เพิ่ม index สำหรับการ query ที่ใช้บ่อย
+logSchema.index({ createdDate: -1 });
+logSchema.index({ apikey: 1, createdDate: -1 });
+
 const Log = conn.model('Log', logSchema);
 
 const TransactionSchema = new mongoose.Schema({
@@ -73,7 +106,9 @@ const TransactionSchema = new mongoose.Schema({
     createdDate: { type: Date, default: Date.now, index: true }
 });
 
+// ✅ เพิ่ม compound index ที่จำเป็น
 TransactionSchema.index({ apikey: 1, statusCode: 1, createdDate: -1 });
+TransactionSchema.index({ 'data.username': 1, createdDate: -1 }); // สำหรับ query history by username
 
 const Transaction = conn.model('Transaction', TransactionSchema);
 
@@ -82,8 +117,12 @@ const TrandaySchema = new mongoose.Schema({
     payoutAmount : { type: Number , required: true },  
     apikey: { type: mongoose.Schema.Types.ObjectId, ref: 'Api'  },
     username: { type: String},
-    data : { type: String }
+    data : { type: String } // วันที่ในรูปแบบ MM/DD/YYYY
 });
+
+// ✅ เพิ่ม compound index สำหรับ query ที่ใช้บ่อย
+TrandaySchema.index({ apikey: 1, data: 1 }); // สำหรับ query by agent + date
+TrandaySchema.index({ data: 1 }); // สำหรับ query by date
 
 const Tranday = conn.model('Tranday', TrandaySchema);
 
@@ -98,6 +137,11 @@ const userSchema = new mongoose.Schema({
     useAgentSettings: { type: Boolean, default: true }, // true = ใช้ของ Agent, false = ใช้ของตัวเอง
     gameSettings: { type: gameSettingSchemaStructure, default: () => ({}) } // Settings เฉพาะของ User
 });
+
+// ✅ เพิ่ม index สำหรับการ query ที่ใช้บ่อย
+userSchema.index({ username: 1, apikey: 1 }); // สำหรับ findOne by username + apikey
+userSchema.index({ token: 1 }); // สำหรับ findOne by token
+userSchema.index({ userid: 1 }); // สำหรับ findOne by userid
 
 const User = conn.model('User', userSchema);
 
