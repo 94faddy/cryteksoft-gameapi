@@ -129,59 +129,70 @@ router.get('/manage-usernames', isAdmin, (req, res) => {
 // --- API Endpoints ---
 
 // GET /admin/api/dashboard-summary
+// ✅ แก้ไข: ใช้ Transaction collection แทน Tranday เพื่อให้ตรงกับ Agent Report
 router.get('/api/dashboard-summary', isAdmin, async (req, res) => {
     try {
-        const pipeline = [];
+        // ✅ เริ่มต้นด้วย match condition พื้นฐาน (statusCode: 0 = สำเร็จ)
+        let matchCondition = { statusCode: 0 };
 
+        // ✅ ถ้ามีการเลือกช่วงวันที่
         if (req.query.start && req.query.end) {
             const [month1, day1, year1] = req.query.start.split('/');
             const [month2, day2, year2] = req.query.end.split('/');
-            const startDate = new Date(`${year1}-${month1}-${day1}`);
-            const endDate = new Date(new Date(`${year2}-${month2}-${day2}`).setHours(23, 59, 59, 999));
+            
+            // ✅ ใช้รูปแบบเดียวกันกับ Agent Report (UTC timezone)
+            const startDate = new Date(`${year1}-${month1}-${day1}T00:00:00.000Z`);
+            const endDate = new Date(`${year2}-${month2}-${day2}T23:59:59.999Z`);
 
-            pipeline.push({
-                $addFields: {
-                    convertedDate: {
-                        $dateFromString: {
-                            dateString: '$data',
-                            format: '%m/%d/%Y'
-                        }
-                    }
-                }
-            });
-
-            pipeline.push({
-                $match: {
-                    convertedDate: {
-                        $gte: startDate,
-                        $lte: endDate
-                    }
-                }
-            });
+            matchCondition.createdDate = {
+                $gte: startDate,
+                $lte: endDate
+            };
         }
 
-        pipeline.push({
-            $facet: {
-                "overall": [
-                    { $group: { _id: null, total_bet_all: { $sum: '$betAmount' }, total_win_all: { $sum: '$payoutAmount' } } }
-                ],
-                "byUser": [
-                    { $group: { _id: '$apikey', total_bet: { $sum: '$betAmount' }, total_win: { $sum: '$payoutAmount' } } },
-                    { $lookup: { from: 'apis', localField: '_id', foreignField: '_id', as: 'api_info' } },
-                    { $unwind: { path: "$api_info", preserveNullAndEmptyArrays: true } },
-                    {
-                        $project: {
-                            _id: 0,
-                            name: { $ifNull: [ "$api_info.name", "Unknown User" ] },
-                            username: { $ifNull: [ "$api_info.username", "N/A" ] },
-                            allTotal: [{ total_bet_all: '$total_bet', total_win_all: '$total_win' }]
+        // ✅ ใช้ Transaction collection แทน Tranday
+        const results = await Transaction.aggregate([
+            { $match: matchCondition },
+            {
+                $facet: {
+                    "overall": [
+                        { 
+                            $group: { 
+                                _id: null, 
+                                total_bet_all: { $sum: '$betAmount' }, 
+                                total_win_all: { $sum: '$payoutAmount' } 
+                            } 
                         }
-                    }
-                ]
+                    ],
+                    "byUser": [
+                        { 
+                            $group: { 
+                                _id: '$apikey', 
+                                total_bet: { $sum: '$betAmount' }, 
+                                total_win: { $sum: '$payoutAmount' } 
+                            } 
+                        },
+                        { 
+                            $lookup: { 
+                                from: 'apis', 
+                                localField: '_id', 
+                                foreignField: '_id', 
+                                as: 'api_info' 
+                            } 
+                        },
+                        { $unwind: { path: "$api_info", preserveNullAndEmptyArrays: true } },
+                        {
+                            $project: {
+                                _id: 0,
+                                name: { $ifNull: [ "$api_info.name", "Unknown User" ] },
+                                username: { $ifNull: [ "$api_info.username", "N/A" ] },
+                                allTotal: [{ total_bet_all: '$total_bet', total_win_all: '$total_win' }]
+                            }
+                        }
+                    ]
+                }
             }
-        });
-
-        const results = await Tranday.aggregate(pipeline);
+        ]);
 
         res.json({
             overall: results[0].overall[0] || { total_bet_all: 0, total_win_all: 0 },

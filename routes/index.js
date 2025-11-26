@@ -79,10 +79,10 @@ router.get('/api-keys', isAuthenticated, async (req, res) => {
     res.render('api_keys', { user: user, title: 'จัดการ API' });
 });
 
-router.get('/documents', isAuthenticated, async (req, res) => {
+/*router.get('/documents', isAuthenticated, async (req, res) => {
     const user = await Api.findById(req.session.user.id).lean();
     res.render('documents', { user: user, title: 'เอกสาร API' });
-});
+});*/
 
 router.get('/manage-2fa', isAuthenticated, async (req, res) => {
     const user = await Api.findById(req.session.user.id).lean();
