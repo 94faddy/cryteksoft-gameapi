@@ -69,6 +69,8 @@
       <li class="nav-item"><a class="nav-link <%= title === 'จัดการ Username (ผู้เล่น)' ? 'active' : '' %>" href="/admin/manage-usernames"><i class="bi bi-person-circle me-2"></i>จัดการ Username (ผู้เล่น)</a></li>
       <li class="nav-item"><a class="nav-link <%= title === 'สร้าง API Key' ? 'active' : '' %>" href="/admin/generate-api"><i class="bi bi-key-fill me-2"></i>สร้าง API Key</a></li>
       <hr>
+      <li class="nav-item"><a class="nav-link <%= title === 'จัดการข้อมูลระบบ' ? 'active' : '' %>" href="/admin/data-system"><i class="bi bi-database-gear me-2"></i>จัดการข้อมูลระบบ</a></li>
+      <hr>
       <li class="nav-item"><a href="/admin/logout" class="btn btn-outline-danger w-100">ออกจากระบบ</a></li>
     </ul>
   </div>
@@ -82,6 +84,14 @@
       <li class="nav-item"><a class="nav-link <%= title === 'จัดการผู้ใช้งาน' ? 'active' : '' %>" href="/admin/manage-users"><i class="bi bi-people-fill me-2"></i>จัดการผู้ใช้งาน (Agent)</a></li>
       <li class="nav-item"><a class="nav-link <%= title === 'จัดการ Username (ผู้เล่น)' ? 'active' : '' %>" href="/admin/manage-usernames"><i class="bi bi-person-circle me-2"></i>จัดการ Username (ผู้เล่น)</a></li>
       <li class="nav-item"><a class="nav-link <%= title === 'สร้าง API Key' ? 'active' : '' %>" href="/admin/generate-api"><i class="bi bi-key-fill me-2"></i>สร้าง API Key</a></li>
+    </ul>
+    <hr>
+    <ul class="nav flex-column">
+      <li class="nav-item">
+        <a class="nav-link <%= title === 'จัดการข้อมูลระบบ' ? 'active' : '' %>" href="/admin/data-system">
+          <i class="bi bi-database-gear me-2"></i>จัดการข้อมูลระบบ
+        </a>
+      </li>
     </ul>
     <hr>
     <div class="px-3 mt-auto py-3"><a href="/admin/logout" class="btn btn-outline-danger w-100">ออกจากระบบ</a></div>

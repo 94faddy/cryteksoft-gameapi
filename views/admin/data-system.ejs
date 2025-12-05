@@ -1,0 +1,640 @@
+<%- include('partials/header') %>
+
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2"><i class="bi bi-gear-fill text-primary me-2"></i>จัดการข้อมูลระบบ</h1>
+</div>
+
+<!-- Tab Navigation -->
+<ul class="nav nav-tabs mb-4" id="systemTab" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="export-tab" data-bs-toggle="tab" data-bs-target="#export" type="button" role="tab">
+            <i class="bi bi-download me-1"></i>ดึงข้อมูล Username
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="clear-tab" data-bs-toggle="tab" data-bs-target="#clear" type="button" role="tab">
+            <i class="bi bi-trash3 me-1"></i>ล้างข้อมูล Database
+        </button>
+    </li>
+</ul>
+
+<div class="tab-content" id="systemTabContent">
+    <!-- ======================= TAB 1: ดึงข้อมูล Username ======================= -->
+    <div class="tab-pane fade show active" id="export" role="tabpanel">
+        
+        <div class="row">
+            <div class="col-lg-8 mx-auto">
+                
+                <!-- Card หลัก -->
+                <div class="card shadow-sm border-0">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="bi bi-people-fill me-2"></i>ดึงข้อมูล Username ทั้งหมด</h5>
+                    </div>
+                    <div class="card-body">
+                        
+                        <!-- สถิติจำนวน -->
+                        <div class="alert alert-info d-flex align-items-center mb-4">
+                            <i class="bi bi-info-circle-fill me-2 fs-4"></i>
+                            <div>
+                                จำนวน Username ทั้งหมดในระบบ: 
+                                <strong id="totalUsernameCount" class="fs-5">
+                                    <span class="spinner-border spinner-border-sm" role="status"></span>
+                                </strong>
+                            </div>
+                        </div>
+                        
+                        <!-- ยืนยัน PIN -->
+                        <div class="mb-4">
+                            <label for="exportPin" class="form-label fw-bold">
+                                <i class="bi bi-shield-lock me-1 text-warning"></i>กรุณากรอก PIN 6 หลักเพื่อยืนยัน
+                            </label>
+                            <div class="row g-2">
+                                <div class="col-md-6">
+                                    <input type="password" class="form-control form-control-lg text-center" 
+                                           id="exportPin" maxlength="6" pattern="[0-9]{6}" 
+                                           placeholder="• • • • • •" autocomplete="off">
+                                </div>
+                                <div class="col-md-6">
+                                    <button type="button" class="btn btn-primary btn-lg w-100" id="exportBtn" disabled>
+                                        <i class="bi bi-download me-1"></i>ดึงข้อมูล Username
+                                    </button>
+                                </div>
+                            </div>
+                            <small class="text-muted">PIN 6 หลักที่ได้รับจาก Admin</small>
+                        </div>
+                        
+                    </div>
+                </div>
+                
+                <!-- ผลลัพธ์ -->
+                <div class="card shadow-sm border-0 mt-4" id="exportResultCard" style="display: none;">
+                    <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0"><i class="bi bi-check-circle-fill me-2"></i>ผลลัพธ์</h6>
+                        <div>
+                            <button type="button" class="btn btn-sm btn-light me-1" id="copyUsernamesBtn">
+                                <i class="bi bi-clipboard me-1"></i>Copy
+                            </button>
+                            <button type="button" class="btn btn-sm btn-light" id="downloadUsernamesBtn">
+                                <i class="bi bi-download me-1"></i>Download TXT
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <span class="badge bg-primary fs-6" id="resultCount">0 usernames</span>
+                        </div>
+                        <textarea class="form-control" id="usernamesResult" rows="12" readonly 
+                                  style="font-family: monospace; font-size: 0.9rem;"></textarea>
+                    </div>
+                </div>
+                
+            </div>
+        </div>
+        
+    </div>
+
+    <!-- ======================= TAB 2: ล้างข้อมูล Database ======================= -->
+    <div class="tab-pane fade" id="clear" role="tabpanel">
+        
+        <!-- คำเตือน -->
+        <div class="alert alert-danger" role="alert">
+            <h5 class="alert-heading"><i class="bi bi-exclamation-triangle-fill me-2"></i>คำเตือน!</h5>
+            <p class="mb-0">การล้างข้อมูลจะ <strong>ไม่สามารถกู้คืนได้</strong> กรุณาตรวจสอบให้แน่ใจก่อนดำเนินการ</p>
+        </div>
+
+        <!-- สถิติ Database -->
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-primary text-white">
+                <i class="bi bi-database me-2"></i>สถิติ Database ปัจจุบัน
+            </div>
+            <div class="card-body">
+                <div class="row" id="dbStatsContainer">
+                    <div class="col-12 text-center py-4">
+                        <div class="spinner-border text-primary" role="status"></div>
+                        <p class="mt-2 mb-0">กำลังโหลดข้อมูล...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- เลือก Tables -->
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-warning text-dark">
+                <i class="bi bi-table me-2"></i>เลือก Table ที่ต้องการล้าง
+            </div>
+            <div class="card-body">
+                <div class="row" id="tablesContainer"></div>
+                
+                <div class="mt-3">
+                    <button type="button" class="btn btn-outline-danger btn-sm me-2" id="selectAllBtn">
+                        <i class="bi bi-check-all me-1"></i>เลือกทั้งหมด
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" id="deselectAllBtn">
+                        <i class="bi bi-x-lg me-1"></i>ยกเลิกทั้งหมด
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- เลือกช่วงเวลา -->
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-info text-white">
+                <i class="bi bi-calendar-range me-2"></i>เลือกช่วงเวลาที่จะเก็บข้อมูล
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-3">
+                    <i class="bi bi-info-circle me-1"></i>
+                    ระบบจะ <strong>ลบข้อมูลที่เก่ากว่า</strong> จำนวนวันที่เลือก
+                </p>
+                
+                <div class="d-flex flex-wrap gap-2" id="retentionGroup">
+                    <button type="button" class="btn btn-outline-danger retention-btn" data-days="0">ลบทั้งหมด</button>
+                    <button type="button" class="btn btn-outline-danger retention-btn" data-days="1">เก็บ 1 วัน</button>
+                    <button type="button" class="btn btn-outline-danger retention-btn" data-days="3">เก็บ 3 วัน</button>
+                    <button type="button" class="btn btn-outline-danger retention-btn active" data-days="7">เก็บ 7 วัน</button>
+                    <button type="button" class="btn btn-outline-danger retention-btn" data-days="14">เก็บ 14 วัน</button>
+                    <button type="button" class="btn btn-outline-danger retention-btn" data-days="30">เก็บ 30 วัน</button>
+                    <button type="button" class="btn btn-outline-danger retention-btn" data-days="60">เก็บ 60 วัน</button>
+                    <button type="button" class="btn btn-outline-danger retention-btn" data-days="90">เก็บ 90 วัน</button>
+                </div>
+                
+                <div class="mt-3">
+                    <div class="row g-2 align-items-center">
+                        <div class="col-auto">
+                            <label class="form-label mb-0">หรือระบุจำนวนวันเอง:</label>
+                        </div>
+                        <div class="col-auto">
+                            <div class="input-group" style="width: 180px;">
+                                <input type="number" class="form-control" id="customDays" min="0" max="365" placeholder="0">
+                                <span class="input-group-text">วัน</span>
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <button type="button" class="btn btn-outline-primary" id="applyCustomDays">
+                                <i class="bi bi-check-lg me-1"></i>ใช้ค่านี้
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Preview -->
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-secondary text-white">
+                <i class="bi bi-eye me-2"></i>Preview ก่อนดำเนินการ
+            </div>
+            <div class="card-body bg-light">
+                <div class="row">
+                    <div class="col-md-6 mb-3 mb-md-0">
+                        <h6 class="text-primary fw-bold"><i class="bi bi-table me-1"></i>Tables ที่เลือก:</h6>
+                        <ul id="previewTables" class="mb-0 ps-3">
+                            <li class="text-secondary">ยังไม่ได้เลือก</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-primary fw-bold"><i class="bi bi-calendar me-1"></i>ช่วงเวลาที่จะลบ:</h6>
+                        <p id="previewPeriod" class="mb-0 text-dark">ลบข้อมูลที่เก่ากว่า <strong>7 วัน</strong></p>
+                        <p id="previewDate" class="text-secondary small mb-0"></p>
+                    </div>
+                </div>
+                <hr>
+                <div id="previewEstimate">
+                    <h6 class="text-danger fw-bold"><i class="bi bi-trash me-1"></i>ประมาณการข้อมูลที่จะถูกลบ:</h6>
+                    <p class="text-secondary mb-0">กด "ประมาณการ" เพื่อดูจำนวน</p>
+                </div>
+                
+                <button type="button" class="btn btn-primary mt-3" id="estimateBtn">
+                    <i class="bi bi-calculator me-1"></i>ประมาณการจำนวนที่จะลบ
+                </button>
+            </div>
+        </div>
+
+        <!-- Danger Zone -->
+        <div class="card shadow-sm border-danger mb-4">
+            <div class="card-header bg-danger text-white">
+                <i class="bi bi-exclamation-octagon-fill me-2"></i>Danger Zone - ยืนยันการลบ
+            </div>
+            <div class="card-body bg-light">
+                <form id="clearDataForm">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="adminPassword" class="form-label fw-bold">
+                                <i class="bi bi-key-fill me-1"></i>รหัสผ่าน Admin
+                            </label>
+                            <input type="password" class="form-control" id="adminPassword" required 
+                                   placeholder="กรอกรหัสผ่าน Admin">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="confirmText" class="form-label fw-bold">
+                                <i class="bi bi-exclamation-diamond me-1"></i>พิมพ์ "DELETE" เพื่อยืนยัน
+                            </label>
+                            <input type="text" class="form-control" id="confirmText" required 
+                                   placeholder="พิมพ์ DELETE" autocomplete="off">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-danger btn-lg" id="deleteBtn" disabled>
+                        <i class="bi bi-trash3-fill me-1"></i>ลบข้อมูลทันที
+                    </button>
+                </form>
+            </div>
+        </div>
+        
+    </div>
+</div>
+
+<!-- Loading Modal -->
+<div class="modal fade" id="loadingModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-body text-center py-5">
+                <div class="spinner-border text-danger mb-3" style="width: 3rem; height: 3rem;"></div>
+                <h5>กำลังดำเนินการ...</h5>
+                <p class="text-muted mb-0">กรุณาอย่าปิดหน้านี้</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .retention-btn.active {
+        background-color: #dc3545 !important;
+        border-color: #dc3545 !important;
+        color: #fff !important;
+    }
+    .table-card {
+        border: 2px solid #dee2e6;
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        transition: all 0.2s;
+        cursor: pointer;
+    }
+    .table-card:hover {
+        border-color: #0d6efd;
+    }
+    .table-card.selected {
+        border-color: #dc3545;
+        background-color: #fff5f5;
+    }
+    .table-card .form-check-input:checked {
+        background-color: #dc3545;
+        border-color: #dc3545;
+    }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // ======================== ส่วนดึง Username ========================
+    const PIN_CODE = '199494';
+    const exportPinInput = document.getElementById('exportPin');
+    const exportBtn = document.getElementById('exportBtn');
+    const exportResultCard = document.getElementById('exportResultCard');
+    const usernamesResult = document.getElementById('usernamesResult');
+    const resultCount = document.getElementById('resultCount');
+    
+    // โหลดจำนวน Username
+    async function loadUsernameCount() {
+        try {
+            const response = await fetch('/admin/api/username-count');
+            const data = await response.json();
+            document.getElementById('totalUsernameCount').textContent = data.count.toLocaleString() + ' รายการ';
+        } catch (err) {
+            document.getElementById('totalUsernameCount').textContent = 'ไม่สามารถโหลดได้';
+        }
+    }
+    loadUsernameCount();
+    
+    // ตรวจสอบ PIN
+    exportPinInput.addEventListener('input', function() {
+        const pin = this.value;
+        exportBtn.disabled = pin.length !== 6;
+    });
+    
+    // ดึงข้อมูล Username
+    exportBtn.addEventListener('click', async function() {
+        const pin = exportPinInput.value;
+        
+        if (pin !== PIN_CODE) {
+            Swal.fire('PIN ไม่ถูกต้อง', 'กรุณากรอก PIN 6 หลักที่ถูกต้อง', 'error');
+            return;
+        }
+        
+        this.disabled = true;
+        this.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>กำลังดึงข้อมูล...';
+        
+        try {
+            const response = await fetch('/admin/api/export-usernames', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ pin })
+            });
+            const data = await response.json();
+            
+            if (data.success) {
+                usernamesResult.value = data.usernames.join('\n');
+                resultCount.textContent = data.usernames.length.toLocaleString() + ' usernames';
+                exportResultCard.style.display = 'block';
+                
+                Swal.fire({
+                    icon: 'success',
+                    title: 'ดึงข้อมูลสำเร็จ!',
+                    text: `พบ ${data.usernames.length} usernames`,
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            } else {
+                throw new Error(data.message);
+            }
+        } catch (err) {
+            Swal.fire('เกิดข้อผิดพลาด', err.message, 'error');
+        } finally {
+            this.disabled = false;
+            this.innerHTML = '<i class="bi bi-download me-1"></i>ดึงข้อมูล Username';
+        }
+    });
+    
+    // Copy usernames
+    document.getElementById('copyUsernamesBtn').addEventListener('click', function() {
+        usernamesResult.select();
+        document.execCommand('copy');
+        Swal.fire({ icon: 'success', title: 'Copied!', timer: 1000, showConfirmButton: false });
+    });
+    
+    // Download TXT
+    document.getElementById('downloadUsernamesBtn').addEventListener('click', function() {
+        const blob = new Blob([usernamesResult.value], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'usernames_' + new Date().toISOString().slice(0,10) + '.txt';
+        a.click();
+        URL.revokeObjectURL(url);
+    });
+    
+    // ======================== ส่วนล้างข้อมูล Database ========================
+    const loadingModal = new bootstrap.Modal(document.getElementById('loadingModal'));
+    let selectedTables = [];
+    let selectedDays = 7;
+
+    const availableTables = [
+        { id: 'transactions', name: 'Transactions', icon: 'bi-receipt', description: 'บันทึกการทำธุรกรรม' },
+        { id: 'logs', name: 'Logs', icon: 'bi-journal-text', description: 'Log API' },
+        { id: 'trandays', name: 'Trandays', icon: 'bi-calendar-day', description: 'สรุปยอดรายวัน' },
+        { id: 'users', name: 'Users', icon: 'bi-person', description: 'ข้อมูล Session ผู้เล่น' },
+        { id: 'sessions', name: 'Sessions', icon: 'bi-box-arrow-in-right', description: 'Login Session' }
+    ];
+
+    // Load DB Stats
+    async function loadDbStats() {
+        try {
+            const response = await fetch('/admin/api/db-stats');
+            const stats = await response.json();
+            
+            const container = document.getElementById('dbStatsContainer');
+            container.innerHTML = availableTables.map(table => {
+                const count = stats[table.id] || 0;
+                const colorClass = count > 10000 ? 'text-danger' : count > 1000 ? 'text-warning' : 'text-success';
+                return `
+                    <div class="col-6 col-md-4 col-lg mb-3">
+                        <div class="text-center p-3 rounded bg-light">
+                            <i class="bi ${table.icon} fs-3 text-primary"></i>
+                            <div class="fs-4 fw-bold ${colorClass}">${count.toLocaleString()}</div>
+                            <small class="text-muted">${table.name}</small>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            // Render table selection
+            document.getElementById('tablesContainer').innerHTML = availableTables.map(table => {
+                const count = stats[table.id] || 0;
+                return `
+                    <div class="col-md-6 col-lg-4">
+                        <div class="table-card" data-table="${table.id}">
+                            <div class="form-check">
+                                <input class="form-check-input table-checkbox" type="checkbox" id="table_${table.id}" data-id="${table.id}">
+                                <label class="form-check-label" for="table_${table.id}">
+                                    <i class="bi ${table.icon} me-1 text-primary"></i>
+                                    <strong>${table.name}</strong>
+                                    <div class="small text-muted">${table.description}</div>
+                                    <div class="badge bg-secondary mt-1">${count.toLocaleString()} รายการ</div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // Add click handlers
+            document.querySelectorAll('.table-card').forEach(card => {
+                card.addEventListener('click', function(e) {
+                    if (e.target.type !== 'checkbox') {
+                        const checkbox = this.querySelector('.table-checkbox');
+                        checkbox.checked = !checkbox.checked;
+                        checkbox.dispatchEvent(new Event('change'));
+                    }
+                });
+            });
+
+            document.querySelectorAll('.table-checkbox').forEach(cb => {
+                cb.addEventListener('change', function() {
+                    const card = this.closest('.table-card');
+                    if (this.checked) {
+                        card.classList.add('selected');
+                        if (!selectedTables.includes(this.dataset.id)) {
+                            selectedTables.push(this.dataset.id);
+                        }
+                    } else {
+                        card.classList.remove('selected');
+                        selectedTables = selectedTables.filter(t => t !== this.dataset.id);
+                    }
+                    updatePreview();
+                    checkFormValidity();
+                });
+            });
+        } catch (err) {
+            document.getElementById('dbStatsContainer').innerHTML = '<div class="col-12"><div class="alert alert-danger">ไม่สามารถโหลดข้อมูลได้</div></div>';
+        }
+    }
+    loadDbStats();
+
+    // Select/Deselect All
+    document.getElementById('selectAllBtn').addEventListener('click', function() {
+        document.querySelectorAll('.table-checkbox').forEach(cb => {
+            cb.checked = true;
+            cb.dispatchEvent(new Event('change'));
+        });
+    });
+    document.getElementById('deselectAllBtn').addEventListener('click', function() {
+        document.querySelectorAll('.table-checkbox').forEach(cb => {
+            cb.checked = false;
+            cb.dispatchEvent(new Event('change'));
+        });
+    });
+
+    // Retention buttons
+    document.querySelectorAll('.retention-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.retention-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            selectedDays = parseInt(this.dataset.days);
+            document.getElementById('customDays').value = '';
+            updatePreview();
+        });
+    });
+
+    // Custom days
+    document.getElementById('applyCustomDays').addEventListener('click', function() {
+        const days = parseInt(document.getElementById('customDays').value);
+        if (!isNaN(days) && days >= 0) {
+            document.querySelectorAll('.retention-btn').forEach(b => b.classList.remove('active'));
+            selectedDays = days;
+            updatePreview();
+        } else {
+            Swal.fire('ข้อมูลไม่ถูกต้อง', 'กรุณากรอกจำนวนวัน 0-365', 'warning');
+        }
+    });
+
+    // Update Preview
+    function updatePreview() {
+        const previewTables = document.getElementById('previewTables');
+        if (selectedTables.length === 0) {
+            previewTables.innerHTML = '<li class="text-muted">ยังไม่ได้เลือก</li>';
+        } else {
+            previewTables.innerHTML = selectedTables.map(id => {
+                const t = availableTables.find(t => t.id === id);
+                return `<li><i class="bi ${t.icon} me-1"></i>${t.name}</li>`;
+            }).join('');
+        }
+
+        const previewPeriod = document.getElementById('previewPeriod');
+        const previewDate = document.getElementById('previewDate');
+        if (selectedDays === 0) {
+            previewPeriod.innerHTML = '<strong class="text-danger">ลบข้อมูลทั้งหมด!</strong>';
+            previewDate.textContent = '';
+        } else {
+            previewPeriod.innerHTML = `ลบข้อมูลที่เก่ากว่า <strong>${selectedDays} วัน</strong>`;
+            const cutoff = new Date();
+            cutoff.setDate(cutoff.getDate() - selectedDays);
+            previewDate.textContent = `(ก่อนวันที่ ${cutoff.toLocaleDateString('th-TH')})`;
+        }
+    }
+
+    // Estimate
+    document.getElementById('estimateBtn').addEventListener('click', async function() {
+        if (selectedTables.length === 0) {
+            Swal.fire('ข้อมูลไม่ครบ', 'กรุณาเลือก Table ที่ต้องการลบ', 'warning');
+            return;
+        }
+
+        this.disabled = true;
+        this.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>กำลังประมาณการ...';
+
+        try {
+            const response = await fetch('/admin/api/estimate-clear', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ tables: selectedTables, days: selectedDays })
+            });
+            const result = await response.json();
+
+            if (result.success) {
+                let html = '<h6 class="text-danger"><i class="bi bi-trash me-1"></i>ประมาณการข้อมูลที่จะถูกลบ:</h6><ul class="mb-0 ps-3">';
+                let total = 0;
+                result.estimates.forEach(est => {
+                    const t = availableTables.find(t => t.id === est.table);
+                    html += `<li><i class="bi ${t.icon} me-1"></i>${t.name}: <strong class="text-danger">${est.count.toLocaleString()}</strong></li>`;
+                    total += est.count;
+                });
+                html += `</ul><hr class="border-secondary my-2"><p class="mb-0 fw-bold">รวม: <span class="text-danger">${total.toLocaleString()}</span> รายการ</p>`;
+                document.getElementById('previewEstimate').innerHTML = html;
+            } else {
+                throw new Error(result.message);
+            }
+        } catch (err) {
+            Swal.fire('เกิดข้อผิดพลาด', err.message, 'error');
+        } finally {
+            this.disabled = false;
+            this.innerHTML = '<i class="bi bi-calculator me-1"></i>ประมาณการจำนวนที่จะลบ';
+        }
+    });
+
+    // Form validation
+    const confirmText = document.getElementById('confirmText');
+    const adminPassword = document.getElementById('adminPassword');
+    const deleteBtn = document.getElementById('deleteBtn');
+
+    function checkFormValidity() {
+        const isValid = selectedTables.length > 0 && 
+                       confirmText.value.toUpperCase() === 'DELETE' && 
+                       adminPassword.value.length > 0;
+        deleteBtn.disabled = !isValid;
+    }
+
+    confirmText.addEventListener('input', checkFormValidity);
+    adminPassword.addEventListener('input', checkFormValidity);
+
+    // Submit
+    document.getElementById('clearDataForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        if (selectedTables.length === 0) {
+            Swal.fire('ข้อมูลไม่ครบ', 'กรุณาเลือก Table ที่ต้องการลบ', 'warning');
+            return;
+        }
+
+        const result = await Swal.fire({
+            title: 'ยืนยันการลบข้อมูล?',
+            html: `<p class="text-danger fw-bold">การกระทำนี้ไม่สามารถย้อนกลับได้!</p>
+                   <p>ลบข้อมูลจาก ${selectedTables.length} tables</p>
+                   <p>เก็บไว้: ${selectedDays === 0 ? 'ลบทั้งหมด' : selectedDays + ' วันล่าสุด'}</p>`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            confirmButtonText: 'ใช่, ลบเลย!',
+            cancelButtonText: 'ยกเลิก'
+        });
+
+        if (!result.isConfirmed) return;
+
+        loadingModal.show();
+
+        try {
+            const response = await fetch('/admin/api/clear-data', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    tables: selectedTables,
+                    days: selectedDays,
+                    admin_password: adminPassword.value
+                })
+            });
+
+            const data = await response.json();
+            loadingModal.hide();
+
+            if (data.success) {
+                let html = '<ul class="text-start">';
+                data.results.forEach(r => {
+                    const t = availableTables.find(t => t.id === r.table);
+                    html += `<li>${t.name}: ลบไป <strong>${r.deleted.toLocaleString()}</strong></li>`;
+                });
+                html += '</ul>';
+
+                await Swal.fire({ icon: 'success', title: 'ลบข้อมูลสำเร็จ!', html });
+                window.location.reload();
+            } else {
+                throw new Error(data.message);
+            }
+        } catch (err) {
+            loadingModal.hide();
+            Swal.fire('เกิดข้อผิดพลาด', err.message, 'error');
+        }
+    });
+
+    updatePreview();
+});
+</script>
+
+<%- include('partials/footer') %>
